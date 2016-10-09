@@ -1,0 +1,32 @@
+<idea-plugin version="2">
+    <id>com.appcodeplugins.swiftlint</id>
+
+    <name>SwiftLint</name>
+    <version>1.0</version>
+    <vendor email="alex@lonelybytes.com" url="http://github.com/SwiftLintAppCode">Alexander Babaev</vendor>
+
+    <description><![CDATA[
+<p>Provides highlighting of the SwiftLint errors. You can download it here: <a href="https://github.com/realm/SwiftLint">https://github.com/realm/SwiftLint</a>.
+To configure SwiftLint, create ".swiftlint.yml" file in the project root.</p>
+
+<p>Created by Alexander Babaev, Stanislav Dombrovsky</p>
+    ]]></description>
+
+    <change-notes>
+    </change-notes>
+
+    <idea-version since-build="163"/>
+
+    <depends>com.intellij.modules.appcode</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <localInspection implementationClass="com.lonelybytes.swiftlint.SwiftLintInspection"
+                         displayName="SwiftLint Inspections"
+                         groupName="SwiftLint"
+                         id="SwiftLintInspection"
+                         level="WARNING"
+                         enabledByDefault="true"/>
+        <applicationConfigurable instance="com.lonelybytes.swiftlint.Configuration"
+                                 displayName="SwiftLint configuration"/>
+    </extensions>
+</idea-plugin>
