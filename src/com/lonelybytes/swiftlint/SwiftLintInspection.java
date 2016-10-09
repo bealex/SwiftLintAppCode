@@ -68,7 +68,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
         try {
             String fileText = Utils.executeCommandOnFile(toolPath, toolOptions, file);
 
-            System.out.println("\n" + fileText + "\n");
+//            System.out.println("\n" + fileText + "\n");
 
             if (fileText.isEmpty()) {
                 return descriptors.toArray(new ProblemDescriptor[descriptors.size()]);
@@ -133,6 +133,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
                 } else {
                     boolean isErrorNewLinesOnly = (startChar == '\n');
                     boolean isErrorInSymbol = !Character.isLetterOrDigit(startChar) && !Character.isWhitespace(startChar);
+                    isErrorInSymbol |= errorType.equals("opening_brace");
 
                     if (!isErrorInSymbol) {
                         if (!isErrorNewLinesOnly && weHaveAColumn) {
@@ -149,8 +150,12 @@ public class SwiftLintInspection extends LocalInspectionTool {
                         }
                     }
 
-                    if (errorType.equals("opening_brace")) {
+                    if (errorType.equals("opening_brace") && Character.isWhitespace(startChar)) {
                         range = getNextTokenAtIndex(file, highlightStartOffset, errorType);
+                    }
+
+                    if (errorType.equals("valid_docs")) {
+                        range = prevElement(file, highlightStartOffset).getTextRange();
                     }
 
                     if (errorType.equals("trailing_newline") && !weHaveAColumn && chars.charAt(chars.length() - 1) != '\n') {
@@ -262,6 +267,28 @@ public class SwiftLintInspection extends LocalInspectionTool {
             while (nextElement != null && (nextElement == initialElement || nextElement instanceof PsiWhiteSpace)) {
                 index += nextElement.getTextLength();
                 nextElement = aFile.findElementAt(index);
+            }
+        }
+
+        return nextElement;
+    }
+
+    private PsiElement prevElement(PsiFile aFile, int aElementIndex) {
+        PsiElement nextElement = null;
+
+        PsiElement initialElement = aFile.findElementAt(aElementIndex);
+
+        if (initialElement != null) {
+            int index = initialElement.getTextRange().getStartOffset() - 1;
+            nextElement = aFile.findElementAt(index);
+
+            while (nextElement != null && (nextElement == initialElement || nextElement instanceof PsiWhiteSpace)) {
+                index = nextElement.getTextRange().getStartOffset() - 1;
+                if (index >= 0) {
+                    nextElement = aFile.findElementAt(index);
+                } else {
+                    break;
+                }
             }
         }
 
