@@ -3,19 +3,20 @@
   <component name="NewModuleRootManager">
     <content url="file://$USER_HOME$/Library/Caches/IntelliJIdea2016.3/plugins-sandbox/system/DerivedData/Build/Intermediates/SwiftLintTests.build/Debug/SwiftLintTests.build/DerivedSources" />
     <content url="file://$MODULE_DIR$">
-      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestWrongOperator.swift" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestShortClassName.swift" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestShortParameterName.swift" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestSpacesAfterClass.swift" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestShortVarName.swift" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestNoEmptyLinesAfterExpression.swift" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestShortClassName.swift" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestWrongOperator.swift" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestLongLine.swift" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestWrongMark.swift" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestSemicolons.swift" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestWrongComma.swift" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestSpacesBeforeClass.swift" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestSemicolons.swift" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestShortParameterName.swift" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestNoEmptyLinesAfterExpression.swift" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestOpeningBrace.swift" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestWrongMark.swift" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestWrongColon.swift" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestShortVarName.swift" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/_TestDifferent.swift" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/SwiftLintTests/TestWrongComma.swift" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/main.swift" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/Info.plist" isTestSource="false" />
     </content>
