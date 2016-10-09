@@ -149,6 +149,10 @@ public class SwiftLintInspection extends LocalInspectionTool {
                         }
                     }
 
+                    if (errorType.equals("opening_brace")) {
+                        range = getNextTokenAtIndex(file, highlightStartOffset, errorType);
+                    }
+
                     if (errorType.equals("trailing_newline") && !weHaveAColumn && chars.charAt(chars.length() - 1) != '\n') {
                         highlightType = GENERIC_ERROR;
                         range = TextRange.create(highlightEndOffset - 1, highlightEndOffset);
@@ -221,7 +225,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
             psiElement = file.findElementAt(aCharacterIndex);
 
             if (psiElement != null) {
-                if (";".equals(psiElement.getText()) || aErrorType.equals("variable_name")) {
+                if (";".equals(psiElement.getText()) || (aErrorType.equals("variable_name") && psiElement.getNode().getElementType().toString().equals("IDENTIFIER"))) {
                     result = psiElement.getTextRange();
                 } else {
                     result = psiElement.getNode().getTextRange();

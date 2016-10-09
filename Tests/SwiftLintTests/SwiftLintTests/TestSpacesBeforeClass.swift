@@ -2,5 +2,5 @@
 
 
 
-class Aaaaa21 {
+class TestSpacesBeforeClass {
 }

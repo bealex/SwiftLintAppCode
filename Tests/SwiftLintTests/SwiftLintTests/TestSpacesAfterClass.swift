@@ -1,4 +1,4 @@
-class Aaaaa2 {
+class TestSpacesAfterClass {
 }
 
 
