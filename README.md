@@ -8,7 +8,8 @@ This simple plugin allows to highlight errors and warnings from SwiftLint (https
 
 You should already have SwiftLint installed somewhere.
  1. Install the plugin from the repository
- 2. Set path to SwiftLint binary in the Preferences: ![](http://d.pr/i/FieQ/35oXUPSZ+)
+ 2. Set path to SwiftLint binary in the Preferences:
+ ![](http://d.pr/i/FieQ/35oXUPSZ+)
  3. Configure SwiftLint via .swiftlint.yml file, if needed
 
 You are good to go!
