@@ -1,4 +1,4 @@
-class Aaaaa4 {
+class TestLongLine {
     static func foo() -> Bool {
         return false || false || false || false || false || false || false || false || false || false || false || false || false
     }

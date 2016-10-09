@@ -1,0 +1,5 @@
+class TestOpeningBrace {
+    func abc()
+    {
+    }
+}

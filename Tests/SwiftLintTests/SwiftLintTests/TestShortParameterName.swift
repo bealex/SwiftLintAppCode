@@ -1,5 +1,4 @@
-class Aaa1 {
-    func f(p: Int) -> String {
-        return ""
+class TestShortParameterName {
+    func f(p: Int) {
     }
 }

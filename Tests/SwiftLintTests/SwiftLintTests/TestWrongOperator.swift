@@ -1,6 +1,6 @@
 prefix operator ==
 
-class Aaaaa3 {
+class TestWrongOperator {
     static prefix func ==(another: Aaaaa3) -> Bool {
         return false
     }

@@ -1,2 +1,5 @@
-class A2 {
+class TS {
+}
+
+class T {
 }
