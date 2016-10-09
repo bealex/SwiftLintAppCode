@@ -68,7 +68,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
         try {
             String fileText = Utils.executeCommandOnFile(toolPath, toolOptions, file);
 
-            System.out.println("\n" + fileText + "\n");
+//            System.out.println("\n" + fileText + "\n");
 
             if (fileText.isEmpty()) {
                 return descriptors.toArray(new ProblemDescriptor[descriptors.size()]);
