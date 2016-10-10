@@ -2,7 +2,7 @@
     <id>com.appcodeplugins.swiftlint</id>
 
     <name>SwiftLint</name>
-    <version>1.0</version>
+6.    <version>1.1</version>
     <vendor email="alex@lonelybytes.com" url="http://github.com/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[
@@ -15,7 +15,7 @@ To configure SwiftLint, create ".swiftlint.yml" file in the project root.</p>
     <change-notes>
     </change-notes>
 
-    <idea-version since-build="163"/>
+    <idea-version since-build="162"/>
 
     <depends>com.intellij.modules.appcode</depends>
 
