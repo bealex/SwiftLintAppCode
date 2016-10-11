@@ -2,7 +2,7 @@
     <id>com.appcodeplugins.swiftlint</id>
 
     <name>SwiftLint</name>
-6.    <version>1.1</version>
+    <version>1.2</version>
     <vendor email="alex@lonelybytes.com" url="http://github.com/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[
@@ -13,6 +13,11 @@ To configure SwiftLint, create ".swiftlint.yml" file in the project root.</p>
     ]]></description>
 
     <change-notes>
+        <![CDATA[
+        <ul>
+          <li>Autocorrect quick-fix added</li>
+        </ul>
+      ]]>
     </change-notes>
 
     <idea-version since-build="162"/>

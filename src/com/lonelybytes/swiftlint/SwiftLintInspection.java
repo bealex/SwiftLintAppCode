@@ -9,14 +9,19 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiWhiteSpace;
+import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,15 +30,13 @@ import static com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR;
 import static com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR_OR_WARNING;
 
 public class SwiftLintInspection extends LocalInspectionTool {
+    public static final String QUICK_FIX_NAME = "Autocorrect";
     private Map<String, Integer> _fileHashes = new HashMap<>();
 
     @Override
     public void inspectionStarted(@NotNull LocalInspectionToolSession session, boolean isOnTheFly) {
         super.inspectionStarted(session, isOnTheFly);
-        final FileDocumentManager documentManager = FileDocumentManager.getInstance();
-        if (documentManager.getUnsavedDocuments().length != 0) {
-            ApplicationManager.getApplication().invokeLater(documentManager::saveAllDocuments);
-        }
+        saveAll();
     }
 
     @Override
@@ -169,7 +172,40 @@ public class SwiftLintInspection extends LocalInspectionTool {
                     }
                 }
 
-                descriptors.add(manager.createProblemDescriptor(file, range, errorMessage.trim(), highlightType, true, (LocalQuickFix) null));
+                descriptors.add(manager.createProblemDescriptor(file, range, errorMessage.trim(), highlightType, false, Properties.getBoolean(Configuration.KEY_QUICK_FIX_ENABLED) ? new LocalQuickFix() {
+                    @Nls
+                    @NotNull
+                    @Override
+                    public String getName() {
+                        return QUICK_FIX_NAME;
+                    }
+
+                    @Nls
+                    @NotNull
+                    @Override
+                    public String getFamilyName() {
+                        return QUICK_FIX_NAME;
+                    }
+
+                    @Override
+                    public boolean startInWriteAction() {
+                        return false;
+                    }
+
+                    @Override
+                    public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor problemDescriptor) {
+                        try {
+                            saveAll();
+                            Utils.executeCommandOnFile(toolPath, "autocorrect --path", file);
+                            ArrayList<VirtualFile> virtualFiles = new ArrayList<>();
+                            virtualFiles.add(file.getVirtualFile());
+                            LocalFileSystem.getInstance().refreshFiles(virtualFiles);
+                        } catch (IOException e) {
+                            Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + e.getMessage(), NotificationType.INFORMATION));
+                        }
+
+                    }
+                } : null));
             }
         } catch (ProcessCanceledException ex) {
             // Do nothing here
@@ -182,6 +218,13 @@ public class SwiftLintInspection extends LocalInspectionTool {
         _fileHashes.put(file.getVirtualFile().getCanonicalPath(), newHash);
 
         return descriptors.toArray(new ProblemDescriptor[descriptors.size()]);
+    }
+
+    private void saveAll() {
+        final FileDocumentManager documentManager = FileDocumentManager.getInstance();
+        if (documentManager.getUnsavedDocuments().length != 0) {
+            ApplicationManager.getApplication().invokeLater(documentManager::saveAllDocuments);
+        }
     }
 
     private TextRange getEmptyLinesAroundIndex(Document aDocument, int aInitialIndex) {
