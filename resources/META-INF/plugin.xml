@@ -2,7 +2,7 @@
     <id>com.appcodeplugins.swiftlint</id>
 
     <name>SwiftLint</name>
-    <version>1.2</version>
+    <version>1.3</version>
     <vendor email="alex@lonelybytes.com" url="http://github.com/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[

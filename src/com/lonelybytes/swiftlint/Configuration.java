@@ -32,6 +32,7 @@ public class Configuration implements Configurable {
     private ConfigurationModifiedListener listener = new ConfigurationModifiedListener(this);
 
     private JBCheckBox chQuickFix;
+
     @Nls
     @Override
     public String getDisplayName() {
@@ -71,6 +72,9 @@ public class Configuration implements Configurable {
             if (swiftLintFilePath != null) {
                 Properties.set(KEY_SWIFTLINT, swiftLintFilePath.getAbsolutePath());
             }
+        }
+        if (Properties.isEmpty(KEY_QUICK_FIX_ENABLED)) {
+            Properties.set(KEY_QUICK_FIX_ENABLED, true);
         }
         reset();
         return panel;
