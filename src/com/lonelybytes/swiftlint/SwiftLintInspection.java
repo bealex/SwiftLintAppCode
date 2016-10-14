@@ -71,7 +71,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
         try {
             String fileText = Utils.executeCommandOnFile(toolPath, toolOptions, file);
 
-//            System.out.println("\n" + fileText + "\n");
+            System.out.println("\n" + fileText + "\n");
 
             if (fileText.isEmpty()) {
                 return descriptors.toArray(new ProblemDescriptor[descriptors.size()]);
@@ -100,6 +100,12 @@ public class SwiftLintInspection extends LocalInspectionTool {
                 lineNumber = Math.max(0, lineNumber);
 
                 int columnNumber = matcher.group(columnMatchIndex) == null ? -1 : Math.max(0, Integer.parseInt(matcher.group(columnMatchIndex)));
+
+                if (errorType.equals("empty_first_line")) {
+                    // SwiftLint shows some strange identifier on the previous line
+                    lineNumber += 1;
+                    columnNumber = -1;
+                }
 
                 final String severity = matcher.group(severityMatchIndex);
                 final String errorMessage = matcher.group(messageMatchIndex);

@@ -1,7 +1,7 @@
 ##SwiftLint for AppCode
 
 This simple plugin allows to highlight errors and warnings from SwiftLint (https://github.com/realm/SwiftLint) like this 
-![](http://d.pr/i/1eXBV/4oSHD5yk+)
+![](http://d.pr/i/goBy/3VsjzzWL+)
 
 
 ###Installation
