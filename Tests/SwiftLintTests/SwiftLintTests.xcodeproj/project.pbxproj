@@ -18,6 +18,7 @@
 		2DBA14A39681B4917A44DA6C /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA174DA124B62CE45FB2C1 /* main.swift */; };
 		2DBA14F3336B8D5C5DD1B647 /* TestNoEmptyLinesAfterExpression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA125F0D2D25EDA2EC377E /* TestNoEmptyLinesAfterExpression.swift */; };
 		2DBA15455FAA4FBB3E582D7A /* TestWrongComma.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA1CA1BD99AD6C7CE1520C /* TestWrongComma.swift */; };
+		2DBA15F000F3F3E55B214715 /* TestUnusedParameters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA1BBCAE8A7A3FE1862859 /* TestUnusedParameters.swift */; };
 		2DBA164D56B910525AC22EBF /* TestWrongOperator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA179BBD1889FF80D2AE34 /* TestWrongOperator.swift */; };
 		2DBA19A5194A28BEDF443BDB /* TestSemicolons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA1FB8B97503F9A1BCF9D4 /* TestSemicolons.swift */; };
 		2DBA1B1D8E76A1850F914583 /* _TestDifferent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA124D1DD522159D7FA1BA /* _TestDifferent.swift */; };
@@ -50,6 +51,7 @@
 		2DBA17AF163F9B1D1E6E39A9 /* TestWrongColon.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestWrongColon.swift; sourceTree = "<group>"; };
 		2DBA1A66AC3C391A2E7030CF /* TestOpeningBrace.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestOpeningBrace.swift; sourceTree = "<group>"; };
 		2DBA1ACDE2AD89EB761316A2 /* TestSpacesInsideMethod.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestSpacesInsideMethod.swift; sourceTree = "<group>"; };
+		2DBA1BBCAE8A7A3FE1862859 /* TestUnusedParameters.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestUnusedParameters.swift; sourceTree = "<group>"; };
 		2DBA1C8C7E53A3E0AC517F16 /* TestWrongMark.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestWrongMark.swift; sourceTree = "<group>"; };
 		2DBA1CA1BD99AD6C7CE1520C /* TestWrongComma.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestWrongComma.swift; sourceTree = "<group>"; };
 		2DBA1FB8B97503F9A1BCF9D4 /* TestSemicolons.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestSemicolons.swift; sourceTree = "<group>"; };
@@ -105,6 +107,7 @@
 				2DBA1CA1BD99AD6C7CE1520C /* TestWrongComma.swift */,
 				2DBA124D1DD522159D7FA1BA /* _TestDifferent.swift */,
 				2DBA1ACDE2AD89EB761316A2 /* TestSpacesInsideMethod.swift */,
+				2DBA1BBCAE8A7A3FE1862859 /* TestUnusedParameters.swift */,
 			);
 			path = SwiftLintTests;
 			sourceTree = "<group>";
@@ -184,6 +187,7 @@
 				2DBA15455FAA4FBB3E582D7A /* TestWrongComma.swift in Sources */,
 				2DBA1B1D8E76A1850F914583 /* _TestDifferent.swift in Sources */,
 				2DBA11CFFA0573CD6AA3D785 /* TestSpacesInsideMethod.swift in Sources */,
+				2DBA15F000F3F3E55B214715 /* TestUnusedParameters.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

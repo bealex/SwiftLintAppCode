@@ -17,6 +17,9 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiWhiteSpace;
+import com.jetbrains.swift.psi.SwiftIdentifierPattern;
+import com.jetbrains.swift.psi.SwiftParameter;
+import com.jetbrains.swift.psi.SwiftVariableDeclaration;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -142,12 +145,23 @@ public class SwiftLintInspection extends LocalInspectionTool {
                 } else {
                     boolean isErrorNewLinesOnly = (startChar == '\n');
                     boolean isErrorInSymbol = !Character.isLetterOrDigit(startChar) && !Character.isWhitespace(startChar);
-                    isErrorInSymbol |= errorType.equals("opening_brace");
+                    isErrorInSymbol |= errorType.equals("opening_brace") || errorType.equals("colon");
 
                     if (!isErrorInSymbol) {
                         if (!isErrorNewLinesOnly && weHaveAColumn) {
                             // SwiftLint returns column for the previous non-space token, not the erroneous one. Let's try to correct it.
-                            range = getNextTokenAtIndex(file, highlightStartOffset, errorType);
+                            switch (errorType) {
+                                case "unused_closure_parameter":
+                                    PsiElement psiElement = file.findElementAt(highlightStartOffset);
+                                    range = psiElement != null ? psiElement.getTextRange() : range;
+                                    break;
+                                case "variable_name":
+                                    range = findVarInDefinition(file, highlightStartOffset, errorType);
+                                    break;
+                                default:
+                                    range = getNextTokenAtIndex(file, highlightStartOffset, errorType);
+                                    break;
+                            }
                         } else if (isErrorNewLinesOnly) {
                             // Let's select all empty lines here, we need to show that something is wrong with them
                             range = getEmptyLinesAroundIndex(document, highlightStartOffset);
@@ -156,6 +170,10 @@ public class SwiftLintInspection extends LocalInspectionTool {
                         PsiElement psiElement = file.findElementAt(highlightStartOffset);
                         if (psiElement != null) {
                             range = psiElement.getTextRange();
+
+                            if (errorType.equals("colon")) {
+                                range = getNextTokenAtIndex(file, highlightStartOffset, errorType);
+                            }
                         }
                     }
 
@@ -293,6 +311,38 @@ public class SwiftLintInspection extends LocalInspectionTool {
                             result = psiElement.getNode().getTextRange();
                         }
                     }
+                }
+            }
+        } catch (ProcessCanceledException aE) {
+            // Do nothing
+        } catch (Exception aE) {
+            aE.printStackTrace();
+        }
+
+        return result;
+    }
+
+    private TextRange findVarInDefinition(@NotNull PsiFile file, int aCharacterIndex, String aErrorType) {
+        TextRange result = null;
+
+        PsiElement psiElement;
+        try {
+            psiElement = file.findElementAt(aCharacterIndex);
+
+            while (psiElement != null &&
+                    !(psiElement instanceof SwiftVariableDeclaration) &&
+                    !(psiElement instanceof SwiftParameter)) {
+                psiElement = psiElement.getParent();
+            }
+
+            if (psiElement != null) {
+                if (psiElement instanceof SwiftVariableDeclaration) {
+                    SwiftVariableDeclaration variableDeclaration = (SwiftVariableDeclaration) psiElement;
+                    SwiftIdentifierPattern identifierPattern = variableDeclaration.getVariables().get(0);
+                    result = identifierPattern.getNode().getTextRange();
+                } else /*if (psiElement instanceof SwiftParameter)*/ {
+                    SwiftParameter variableDeclaration = (SwiftParameter) psiElement;
+                    result = variableDeclaration.getNode().getTextRange();
                 }
             }
         } catch (ProcessCanceledException aE) {
