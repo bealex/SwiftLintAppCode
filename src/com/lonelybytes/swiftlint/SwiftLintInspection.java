@@ -74,7 +74,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
         try {
             String fileText = Utils.executeCommandOnFile(toolPath, toolOptions, file);
 
-            System.out.println("\n" + fileText + "\n");
+//            System.out.println("\n" + fileText + "\n");
 
             if (fileText.isEmpty()) {
                 return descriptors.toArray(new ProblemDescriptor[descriptors.size()]);
@@ -151,13 +151,19 @@ public class SwiftLintInspection extends LocalInspectionTool {
                         if (!isErrorNewLinesOnly && weHaveAColumn) {
                             // SwiftLint returns column for the previous non-space token, not the erroneous one. Let's try to correct it.
                             switch (errorType) {
-                                case "unused_closure_parameter":
+                                case "unused_closure_parameter": {
                                     PsiElement psiElement = file.findElementAt(highlightStartOffset);
                                     range = psiElement != null ? psiElement.getTextRange() : range;
                                     break;
+                                }
                                 case "variable_name":
                                     range = findVarInDefinition(file, highlightStartOffset, errorType);
                                     break;
+                                case "type_name": {
+                                    PsiElement psiElement = file.findElementAt(highlightStartOffset);
+                                    range = psiElement != null ? psiElement.getTextRange() : range;
+                                    break;
+                                }
                                 default:
                                     range = getNextTokenAtIndex(file, highlightStartOffset, errorType);
                                     break;
