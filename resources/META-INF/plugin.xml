@@ -2,7 +2,7 @@
     <id>com.appcodeplugins.swiftlint</id>
 
     <name>SwiftLint</name>
-    <version>1.5</version>
+    <version>1.6</version>
     <vendor email="alex@lonelybytes.com" url="http://github.com/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[
@@ -14,6 +14,12 @@ To configure SwiftLint, create ".swiftlint.yml" file in the project root.</p>
 
     <change-notes>
         <![CDATA[
+        <p>1.6</p>
+        <ul>
+          <li>Settings are now being saved.</li>
+          <li>Improvements in highlighting "syntactic sugar" warnings.</li>
+        </ul>
+        <p>1.5</p>
         <ul>
           <li>Some improvements in displaying errors and warnings, support for the new checks.</li>
         </ul>

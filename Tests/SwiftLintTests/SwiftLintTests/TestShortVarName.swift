@@ -1,6 +1,11 @@
-class TestShortVarName {
-    private static let h1 = ""
+protocol TestShortVarName {
+    associatedtype To
 
-    private var i: String
-    private var ia: String
+    func apply() {
+    }
+
+    static let h1 = ""
+
+    var i: String
+    public var ia: String
 }

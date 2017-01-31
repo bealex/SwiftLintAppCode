@@ -1,6 +1,9 @@
 package com.lonelybytes.swiftlint;
 
 import com.intellij.execution.configurations.PathEnvironmentVariableUtil;
+import com.intellij.openapi.components.PersistentStateComponent;
+import com.intellij.openapi.components.Storage;
+import com.intellij.openapi.components.StoragePathMacros;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
@@ -22,7 +25,6 @@ import java.io.File;
 
 public class Configuration implements Configurable {
     static final String KEY_SWIFTLINT = "SwiftLint";
-    public static final String KEY_QUICK_FIX_ENABLED = "SwiftLintFixEnabled";
     private static final String DEFAULT_SWIFTLINT_PATH = "/usr/local/bin/swiftlint";
 
     private boolean modified = false;
@@ -56,28 +58,37 @@ public class Configuration implements Configurable {
 
         JTextField txtPath = new JTextField(30);
         JLabel lblPath = new JLabel("SwiftLint path:");
-        chQuickFix = new JBCheckBox("Enable \"Autocorrect\" quick-fix");
-        browser = new TextFieldWithBrowseButton(txtPath);
 
-        browser.addBrowseFolderListener("SwiftLint configuration", "Select path to SwiftLint executable", project, FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor());
+        browser = new TextFieldWithBrowseButton(txtPath);
+        browser.addBrowseFolderListener("SwiftLint Configuration", "Select path to SwiftLint executable", project, FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor());
         browser.getTextField().setText(DEFAULT_SWIFTLINT_PATH);
         browser.getTextField().getDocument().addDocumentListener(listener);
-        chQuickFix.addChangeListener(listener);
+
         row.add(lblPath);
         row.add(browser);
+
+        chQuickFix = new JBCheckBox("Enable \"Autocorrect\" quick-fix");
+        chQuickFix.addChangeListener(listener);
+
         panel.add(row);
         panel.add(chQuickFix);
-        if (Properties.isEmpty(KEY_SWIFTLINT)) {
+
+        initializePreferences();
+
+        reset();
+
+        return panel;
+    }
+
+    private void initializePreferences() {
+        if (STATE.appPath == null) {
             File swiftLintFilePath = PathEnvironmentVariableUtil.findInPath("swiftlint");
             if (swiftLintFilePath != null) {
-                Properties.set(KEY_SWIFTLINT, swiftLintFilePath.getAbsolutePath());
+                STATE.appPath = swiftLintFilePath.getAbsolutePath();
+            } else {
+                STATE.appPath = DEFAULT_SWIFTLINT_PATH;
             }
         }
-        if (Properties.isEmpty(KEY_QUICK_FIX_ENABLED)) {
-            Properties.set(KEY_QUICK_FIX_ENABLED, true);
-        }
-        reset();
-        return panel;
     }
 
     @Override
@@ -87,15 +98,17 @@ public class Configuration implements Configurable {
 
     @Override
     public void apply() throws ConfigurationException {
-        Properties.set(KEY_SWIFTLINT, browser.getText());
-        Properties.set(KEY_QUICK_FIX_ENABLED, chQuickFix.isSelected());
+        STATE.appPath = browser.getText();
+        STATE.quickFixEnabled = chQuickFix.isSelected();
+
         modified = false;
     }
 
     @Override
     public void reset() {
-        browser.getTextField().setText(Properties.get(KEY_SWIFTLINT));
-        chQuickFix.setSelected(Properties.getBoolean(KEY_QUICK_FIX_ENABLED));
+        browser.getTextField().setText(STATE.appPath);
+        chQuickFix.setSelected(STATE.quickFixEnabled);
+
         modified = false;
     }
 
@@ -132,4 +145,24 @@ public class Configuration implements Configurable {
             option.modified = true;
         }
     }
+
+    @com.intellij.openapi.components.State(name = "com.appcodeplugins.swiftlint")
+    @Storage(StoragePathMacros.WORKSPACE_FILE)
+    static class State implements PersistentStateComponent<State> {
+        public String appPath = null;
+        public boolean quickFixEnabled = false;
+
+        @Nullable
+        @Override
+        public State getState() {
+            return STATE;
+        }
+
+        @Override
+        public void loadState(State aState) {
+            STATE = aState;
+        }
+    }
+
+    static State STATE = new State();
 }
