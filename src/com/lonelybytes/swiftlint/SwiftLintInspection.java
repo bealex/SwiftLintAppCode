@@ -11,7 +11,6 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
@@ -55,10 +54,15 @@ public class SwiftLintInspection extends LocalInspectionTool {
             return null;
         }
 
-        String toolPath = Properties.get(Configuration.KEY_SWIFTLINT);
-        if (StringUtil.isEmpty(toolPath)) {
+        Configuration.State state = Configuration.STATE;
+
+        if (state == null || state.appPath == null) {
             return null;
         }
+
+        boolean quickFixEnabled = state.quickFixEnabled;
+
+        String toolPath = state.appPath;
 
         String toolOptions = "lint --path";
 
@@ -156,6 +160,14 @@ public class SwiftLintInspection extends LocalInspectionTool {
                                     range = psiElement != null ? psiElement.getTextRange() : range;
                                     break;
                                 }
+                                case "syntactic_sugar": {
+                                    PsiElement psiElement = file.findElementAt(highlightStartOffset);
+                                    if (psiElement != null) {
+                                        psiElement = psiElement.getParent();
+                                    }
+                                    range = psiElement != null ? psiElement.getTextRange() : range;
+                                    break;
+                                }
                                 case "variable_name":
                                     range = findVarInDefinition(file, highlightStartOffset, errorType);
                                     break;
@@ -202,45 +214,53 @@ public class SwiftLintInspection extends LocalInspectionTool {
                     }
                 }
 
-                descriptors.add(manager.createProblemDescriptor(file, range, errorMessage.trim(), highlightType, false, Properties.getBoolean(Configuration.KEY_QUICK_FIX_ENABLED) ? new LocalQuickFix() {
-                    @Nls
-                    @NotNull
-                    @Override
-                    public String getName() {
-                        return QUICK_FIX_NAME;
-                    }
-
-                    @Nls
-                    @NotNull
-                    @Override
-                    public String getFamilyName() {
-                        return QUICK_FIX_NAME;
-                    }
-
-                    @Override
-                    public boolean startInWriteAction() {
-                        return false;
-                    }
-
-                    @Override
-                    public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor problemDescriptor) {
-                        try {
-                            saveAll();
-                            Utils.executeCommandOnFile(toolPath, "autocorrect --path", file);
-                            ArrayList<VirtualFile> virtualFiles = new ArrayList<>();
-                            virtualFiles.add(file.getVirtualFile());
-                            LocalFileSystem.getInstance().refreshFiles(virtualFiles);
-                        } catch (IOException e) {
-                            Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + e.getMessage(), NotificationType.INFORMATION));
+                if (quickFixEnabled) {
+                    descriptors.add(manager.createProblemDescriptor(file, range, errorMessage.trim(), highlightType, false, new LocalQuickFix() {
+                        @Nls
+                        @NotNull
+                        @Override
+                        public String getName() {
+                            return QUICK_FIX_NAME;
                         }
 
-                    }
-                } : null));
+                        @Nls
+                        @NotNull
+                        @Override
+                        public String getFamilyName() {
+                            return QUICK_FIX_NAME;
+                        }
+
+                        @Override
+                        public boolean startInWriteAction() {
+                            return false;
+                        }
+
+                        @Override
+                        public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor problemDescriptor) {
+                            try {
+                                saveAll();
+                                Utils.executeCommandOnFile(toolPath, "autocorrect --path", file);
+                                ArrayList<VirtualFile> virtualFiles = new ArrayList<>();
+                                virtualFiles.add(file.getVirtualFile());
+                                LocalFileSystem.getInstance().refreshFiles(virtualFiles);
+                            } catch (IOException e) {
+                                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + e.getMessage(), NotificationType.INFORMATION));
+                            }
+
+                        }
+                    }));
+                }
             }
         } catch (ProcessCanceledException ex) {
             // Do nothing here
+        } catch (IOException ex) {
+            if (ex.getMessage().contains("No such file or directory") || ex.getMessage().contains("error=2")) {
+                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "Can't find swiftlint utility here:\n" + toolPath + "\nPlease check the path in settings.", NotificationType.ERROR));
+            } else {
+                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + ex.getMessage(), NotificationType.ERROR));
+            }
         } catch (Exception ex) {
-            Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + ex.getMessage(), NotificationType.INFORMATION));
+            Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "Exception: " + ex.getMessage(), NotificationType.INFORMATION));
             ex.printStackTrace();
         }
 

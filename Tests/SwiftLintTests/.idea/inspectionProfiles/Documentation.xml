@@ -1,0 +1,139 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Documentation" />
+    <inspection_tool class="AccessorsWereOverridden" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="AlwaysNilVariable" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="Annotator" enabled="false" level="ERROR" enabled_by_default="false" />
+    <inspection_tool class="AssociatedTypeMismatch" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="CallDealloc" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="CheckDtdRefs" enabled="false" level="ERROR" enabled_by_default="false" />
+    <inspection_tool class="CheckEmptyScriptTag" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="CheckTagEmptyBody" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="CheckValidXmlInScriptTagBody" enabled="false" level="ERROR" enabled_by_default="false" />
+    <inspection_tool class="CheckXmlFileWithXercesValidator" enabled="false" level="ERROR" enabled_by_default="false" />
+    <inspection_tool class="DeprecatedAPI" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="DuplicateAttribute" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="DuplicateSwitchCase" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="EndlessLoop" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="EqualityInConditionalOperator" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="FormatSpecifiers" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="FunctionImplicitDeclarationInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="HidesClassScope" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="HidesUpperScope" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="HidingNonVirtualFunction" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="HtmlExtraClosingTag" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="HtmlUnknownAnchorTarget" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="HtmlUnknownAttribute" enabled="false" level="WARNING" enabled_by_default="false">
+      <option name="myValues">
+        <value>
+          <list size="0" />
+        </value>
+      </option>
+      <option name="myCustomValuesEnabled" value="true" />
+    </inspection_tool>
+    <inspection_tool class="HtmlUnknownBooleanAttribute" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="HtmlUnknownTag" enabled="false" level="WARNING" enabled_by_default="false">
+      <option name="myValues">
+        <value>
+          <list size="6">
+            <item index="0" class="java.lang.String" itemvalue="nobr" />
+            <item index="1" class="java.lang.String" itemvalue="noembed" />
+            <item index="2" class="java.lang.String" itemvalue="comment" />
+            <item index="3" class="java.lang.String" itemvalue="noscript" />
+            <item index="4" class="java.lang.String" itemvalue="embed" />
+            <item index="5" class="java.lang.String" itemvalue="script" />
+          </list>
+        </value>
+      </option>
+      <option name="myCustomValuesEnabled" value="true" />
+    </inspection_tool>
+    <inspection_tool class="HtmlUnknownTarget" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="ImplementationHasNoInterface" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="ImplicitIntegerAndEnumConversion" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="ImplicitPointerAndIntegerConversion" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="IncompatibleEnums" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="IncompatibleInitializers" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="IncompatiblePointers" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="InfiniteRecursion" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="InterfaceHasNoImplementation" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="JsonDuplicatePropertyKeys" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="JsonStandardCompliance" enabled="false" level="ERROR" enabled_by_default="false" />
+    <inspection_tool class="KRUnspecifiedParameters" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="KeyValueCodingInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="LastArgumentMustBeNull" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="LocalValueEscapesScope" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="LossyEncoding" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="MethodIsLaterInTheScope" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="MissingReturn" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="MissingSwitchCase" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="NoAttributeForProperty" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="NoClassDefinition" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="NoGetterOrSetter" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="NotImplementedFunctions" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="NotImplementedMethods" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="NotImplementsProtocol" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="NotInHierarchyMessage" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="NotInitializedVariable" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="NotReleasedValue" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="NotSuperclass" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="NotVisibleClass" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCClangAnalyzerInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCClangCompilerInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCDFAInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCGlobalUnused" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCLegacyObjCLiteralInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCLoopDoesntUseConditionVariableInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCNotLocalizedStringInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCNotReleasedIvarInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCSimplifyInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCUnusedClassInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCUnusedGlobalDeclarationInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCUnusedInstanceVariableInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCUnusedMacroInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCUnusedMethodInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCUnusedPropertyInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCUnusedStructInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OCUnusedTemplateParameterInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="ObsoleteNSLiteral" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OverriddenAttributeMismatch" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="OverriddenTypeMismatch" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="PrivateCategoryShouldBeNearImplementation" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="PropertyAndIvarTypeMismatch" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="RedundantCast" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="ReleasingOfAssignProperties" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="RequiredAttributes" enabled="false" level="WARNING" enabled_by_default="false">
+      <option name="myAdditionalRequiredHtmlAttributes" value="" />
+    </inspection_tool>
+    <inspection_tool class="ResourceNotFoundInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="SetterForReadonlyProperty" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="SignednessMismatch" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="SpellCheckingInspection" enabled="false" level="TYPO" enabled_by_default="false">
+      <option name="processCode" value="true" />
+      <option name="processLiterals" value="true" />
+      <option name="processComments" value="true" />
+    </inspection_tool>
+    <inspection_tool class="StringLocalizationInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="SwiftSourceKit" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="SyntaxError" enabled="false" level="ERROR" enabled_by_default="false" />
+    <inspection_tool class="UnavailableInDeploymentTarget" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="UnreachableCode" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="UnresolvedCollectionMessage" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="UnresolvedMessage" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="UnresolvedReference" enabled="false" level="ERROR" enabled_by_default="false" />
+    <inspection_tool class="UnusedExpressionResult" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="UnusedImportStatement" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="UnusedLocalVariable" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="UnusedLocalization" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="UnusedParameter" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="UnusedValue" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="UsingZeroAsNil" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="ValueMayNotFitIntoReceiver" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="XmlDuplicatedId" enabled="false" level="ERROR" enabled_by_default="false" />
+    <inspection_tool class="XmlHighlighting" enabled="false" level="ERROR" enabled_by_default="false" />
+    <inspection_tool class="XmlInvalidId" enabled="false" level="ERROR" enabled_by_default="false" />
+    <inspection_tool class="XmlPathReference" enabled="false" level="ERROR" enabled_by_default="false" />
+    <inspection_tool class="XmlUnboundNsPrefix" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="XmlUnusedNamespaceDeclaration" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="XmlWrongRootElement" enabled="false" level="ERROR" enabled_by_default="false" />
+  </profile>
+</component>
