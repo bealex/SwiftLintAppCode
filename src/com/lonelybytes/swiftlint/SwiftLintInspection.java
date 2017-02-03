@@ -27,12 +27,13 @@ import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR;
 import static com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR_OR_WARNING;
 
 public class SwiftLintInspection extends LocalInspectionTool {
-    public static final String QUICK_FIX_NAME = "Autocorrect";
+    private static final String QUICK_FIX_NAME = "Autocorrect";
     private Map<String, Integer> _fileHashes = new HashMap<>();
 
     @Override
@@ -60,7 +61,9 @@ public class SwiftLintInspection extends LocalInspectionTool {
             return null;
         }
 
-        boolean quickFixEnabled = state.quickFixEnabled;
+        if (state.disableWhenNoConfigPresent && !weHaveSwiftLintConfigInProject(file.getProject(), 5)) {
+            return null;
+        }
 
         String toolPath = state.appPath;
 
@@ -214,7 +217,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
                     }
                 }
 
-                if (quickFixEnabled) {
+                if (state.quickFixEnabled) {
                     descriptors.add(manager.createProblemDescriptor(file, range, errorMessage.trim(), highlightType, false, new LocalQuickFix() {
                         @Nls
                         @NotNull
@@ -249,6 +252,8 @@ public class SwiftLintInspection extends LocalInspectionTool {
 
                         }
                     }));
+                } else {
+                    descriptors.add(manager.createProblemDescriptor(file, range, errorMessage.trim(), highlightType, false, LocalQuickFix.EMPTY_ARRAY));
                 }
             }
         } catch (ProcessCanceledException ex) {
@@ -268,6 +273,52 @@ public class SwiftLintInspection extends LocalInspectionTool {
         _fileHashes.put(file.getVirtualFile().getCanonicalPath(), newHash);
 
         return descriptors.toArray(new ProblemDescriptor[descriptors.size()]);
+    }
+
+    private static class DepthedFile {
+        int _depth;
+        VirtualFile _file;
+
+        DepthedFile(int aDepth, VirtualFile aFile) {
+            _depth = aDepth;
+            _file = aFile;
+        }
+    }
+
+    private boolean weHaveSwiftLintConfigInProject(Project aProject, int aDepthToLookAt) {
+        if (aProject.getBaseDir().findChild(".swiftlint.yml") != null) {
+            return true;
+        }
+
+        List<DepthedFile> filesToLookAt = new LinkedList<>();
+        filesToLookAt.addAll(
+                Arrays.stream(aProject.getBaseDir().getChildren())
+                        .filter(VirtualFile::isDirectory)
+                        .map(aVirtualFile -> new DepthedFile(0, aVirtualFile))
+                        .collect(Collectors.toList())
+        );
+
+        while (!filesToLookAt.isEmpty()) {
+            DepthedFile file = filesToLookAt.get(0);
+            filesToLookAt.remove(0);
+
+            if (file._depth > aDepthToLookAt) {
+                break;
+            }
+
+            if (file._file.findChild(".swiftlint.yml") != null) {
+                return true;
+            } else {
+                filesToLookAt.addAll(
+                        Arrays.stream(file._file.getChildren())
+                                .filter(VirtualFile::isDirectory)
+                                .map(aVirtualFile -> new DepthedFile(file._depth + 1, aVirtualFile))
+                                .collect(Collectors.toList())
+                );
+            }
+        }
+
+        return false;
     }
 
     private void saveAll() {

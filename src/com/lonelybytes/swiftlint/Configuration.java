@@ -30,10 +30,10 @@ public class Configuration implements Configurable {
     private boolean modified = false;
 
     private TextFieldWithBrowseButton browser;
+    private JBCheckBox quickFixCheckbox;
+    private JBCheckBox disableWhenNoConfigPresentCheckbox;
 
     private ConfigurationModifiedListener listener = new ConfigurationModifiedListener(this);
-
-    private JBCheckBox chQuickFix;
 
     @Nls
     @Override
@@ -50,45 +50,38 @@ public class Configuration implements Configurable {
     @Nullable
     @Override
     public JComponent createComponent() {
-        JPanel panel = new JPanel(new VerticalLayout(2, SwingConstants.LEFT));
-        JPanel row = new JPanel(new HorizontalLayout(20, SwingConstants.CENTER));
         ProjectManagerEx projectManager = ProjectManagerEx.getInstanceEx();
         Project[] openProjects = projectManager.getOpenProjects();
         Project project = openProjects.length == 0 ? projectManager.getDefaultProject() : openProjects[0];
 
-        JTextField txtPath = new JTextField(30);
-        JLabel lblPath = new JLabel("SwiftLint path:");
+        JPanel panel = new JPanel(new VerticalLayout(2, SwingConstants.LEFT));
+        JPanel row = new JPanel(new HorizontalLayout(20, SwingConstants.CENTER));
 
-        browser = new TextFieldWithBrowseButton(txtPath);
-        browser.addBrowseFolderListener("SwiftLint Configuration", "Select path to SwiftLint executable", project, FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor());
+        JTextField pathTextField = new JTextField(30);
+        JLabel pathLabel = new JLabel("SwiftLint path:");
+        pathLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+
+        browser = new TextFieldWithBrowseButton(pathTextField);
+        browser.addBrowseFolderListener("SwiftLint Configuration", "Select path to SwiftLint executable", project,
+                FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor());
         browser.getTextField().setText(DEFAULT_SWIFTLINT_PATH);
         browser.getTextField().getDocument().addDocumentListener(listener);
 
-        row.add(lblPath);
+        row.add(pathLabel);
         row.add(browser);
-
-        chQuickFix = new JBCheckBox("Enable \"Autocorrect\" quick-fix");
-        chQuickFix.addChangeListener(listener);
-
         panel.add(row);
-        panel.add(chQuickFix);
 
-        initializePreferences();
+        quickFixCheckbox = new JBCheckBox("Enable \"Autocorrect\" quick-fix");
+        quickFixCheckbox.addChangeListener(listener);
+        panel.add(quickFixCheckbox);
+
+        disableWhenNoConfigPresentCheckbox = new JBCheckBox("Disable when no .swiftlint.yml present");
+        disableWhenNoConfigPresentCheckbox.addChangeListener(listener);
+        panel.add(disableWhenNoConfigPresentCheckbox);
 
         reset();
 
         return panel;
-    }
-
-    private void initializePreferences() {
-        if (STATE.appPath == null) {
-            File swiftLintFilePath = PathEnvironmentVariableUtil.findInPath("swiftlint");
-            if (swiftLintFilePath != null) {
-                STATE.appPath = swiftLintFilePath.getAbsolutePath();
-            } else {
-                STATE.appPath = DEFAULT_SWIFTLINT_PATH;
-            }
-        }
     }
 
     @Override
@@ -99,7 +92,8 @@ public class Configuration implements Configurable {
     @Override
     public void apply() throws ConfigurationException {
         STATE.appPath = browser.getText();
-        STATE.quickFixEnabled = chQuickFix.isSelected();
+        STATE.quickFixEnabled = quickFixCheckbox.isSelected();
+        STATE.disableWhenNoConfigPresent = disableWhenNoConfigPresentCheckbox.isSelected();
 
         modified = false;
     }
@@ -107,7 +101,8 @@ public class Configuration implements Configurable {
     @Override
     public void reset() {
         browser.getTextField().setText(STATE.appPath);
-        chQuickFix.setSelected(STATE.quickFixEnabled);
+        quickFixCheckbox.setSelected(STATE.quickFixEnabled);
+        disableWhenNoConfigPresentCheckbox.setSelected(STATE.disableWhenNoConfigPresent);
 
         modified = false;
     }
@@ -115,7 +110,8 @@ public class Configuration implements Configurable {
     @Override
     public void disposeUIResources() {
         browser.getTextField().getDocument().removeDocumentListener(listener);
-        chQuickFix.removeChangeListener(listener);
+        quickFixCheckbox.removeChangeListener(listener);
+        disableWhenNoConfigPresentCheckbox.removeChangeListener(listener);
     }
 
     private static class ConfigurationModifiedListener implements DocumentListener, ChangeListener {
@@ -151,6 +147,16 @@ public class Configuration implements Configurable {
     static class State implements PersistentStateComponent<State> {
         public String appPath = null;
         public boolean quickFixEnabled = false;
+        public boolean disableWhenNoConfigPresent = false;
+
+        {
+            File swiftLintFilePath = PathEnvironmentVariableUtil.findInPath("swiftlint");
+            if (swiftLintFilePath != null) {
+                appPath = swiftLintFilePath.getAbsolutePath();
+            } else {
+                appPath = DEFAULT_SWIFTLINT_PATH;
+            }
+        }
 
         @Nullable
         @Override

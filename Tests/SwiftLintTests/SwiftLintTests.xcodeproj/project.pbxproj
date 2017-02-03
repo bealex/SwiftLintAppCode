@@ -51,6 +51,7 @@
 		2DBA179BBD1889FF80D2AE34 /* TestWrongOperator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestWrongOperator.swift; sourceTree = "<group>"; };
 		2DBA17AF163F9B1D1E6E39A9 /* TestWrongColon.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestWrongColon.swift; sourceTree = "<group>"; };
 		2DBA18079CADBB38DF614B6E /* TestSyntacticSugar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestSyntacticSugar.swift; sourceTree = "<group>"; };
+		2DBA19B0214AEF5F2E5176D4 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = file.yml; name = .swiftlint.yml; path = SwiftLintTests/.swiftlint.yml; sourceTree = "<group>"; };
 		2DBA1A66AC3C391A2E7030CF /* TestOpeningBrace.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestOpeningBrace.swift; sourceTree = "<group>"; };
 		2DBA1ACDE2AD89EB761316A2 /* TestSpacesInsideMethod.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestSpacesInsideMethod.swift; sourceTree = "<group>"; };
 		2DBA1BBCAE8A7A3FE1862859 /* TestUnusedParameters.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestUnusedParameters.swift; sourceTree = "<group>"; };
@@ -80,6 +81,7 @@
 				FA21056F1DAA35D200FCEF64 /* SwiftLintTests */,
 				FA21056E1DAA35D200FCEF64 /* Products */,
 				2DBA174DA124B62CE45FB2C1 /* main.swift */,
+				2DBA19B0214AEF5F2E5176D4 /* .swiftlint.yml */,
 			);
 			sourceTree = "<group>";
 		};
