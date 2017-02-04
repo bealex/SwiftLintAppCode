@@ -1,6 +1,7 @@
 package com.lonelybytes.swiftlint;
 
 import com.intellij.codeInspection.*;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.lang.ASTNode;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
@@ -32,7 +33,56 @@ import java.util.stream.Collectors;
 import static com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR;
 import static com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR_OR_WARNING;
 
+//@com.intellij.openapi.components.State(
+//    name = "com.appcodeplugins.swiftlint.v1_7",
+//    storages = { @Storage(StoragePathMacros.WORKSPACE_FILE) }
+//)
 public class SwiftLintInspection extends LocalInspectionTool {
+//        implements PersistentStateComponent<SwiftLintInspection.State>
+    // State
+    @SuppressWarnings("WeakerAccess")
+    static class State {
+        public String getAppPath() {
+            return PropertiesComponent.getInstance().getValue("com.appcodeplugins.swiftlint.v1_7.appName");
+        }
+
+        public void setAppPath(String aAppPath) {
+            PropertiesComponent.getInstance().setValue("com.appcodeplugins.swiftlint.v1_7.appName", aAppPath);
+        }
+
+        public boolean isQuickFixEnabled() {
+            return PropertiesComponent.getInstance().getBoolean("com.appcodeplugins.swiftlint.v1_7.quickFixEnabled");
+        }
+
+        public void setQuickFixEnabled(boolean aQuickFixEnabled) {
+            PropertiesComponent.getInstance().setValue("com.appcodeplugins.swiftlint.v1_7.quickFixEnabled", aQuickFixEnabled);
+        }
+
+        public boolean isDisableWhenNoConfigPresent() {
+            return PropertiesComponent.getInstance().getBoolean("com.appcodeplugins.swiftlint.v1_7.isDisableWhenNoConfigPresent");
+        }
+
+        public void setDisableWhenNoConfigPresent(boolean aDisableWhenNoConfigPresent) {
+            PropertiesComponent.getInstance().setValue("com.appcodeplugins.swiftlint.v1_7.isDisableWhenNoConfigPresent", aDisableWhenNoConfigPresent);
+        }
+    }
+    
+    @SuppressWarnings("WeakerAccess")
+    static State STATE = new State();
+
+//    @Nullable
+//    @Override
+//    public State getState() {
+//        return STATE;
+//    }
+//
+//    @Override
+//    public void loadState(State aState) {
+//        STATE = aState;
+//    }
+
+    // Main Class
+
     private static final String QUICK_FIX_NAME = "Autocorrect";
     private Map<String, Integer> _fileHashes = new HashMap<>();
 
@@ -55,17 +105,15 @@ public class SwiftLintInspection extends LocalInspectionTool {
             return null;
         }
 
-        Configuration.State state = Configuration.STATE;
-
-        if (state == null || state.appPath == null) {
+        if (STATE == null || STATE.getAppPath() == null) {
             return null;
         }
 
-        if (state.disableWhenNoConfigPresent && !weHaveSwiftLintConfigInProject(file.getProject(), 5)) {
+        if (STATE.isDisableWhenNoConfigPresent() && !weHaveSwiftLintConfigInProject(file.getProject(), 5)) {
             return null;
         }
 
-        String toolPath = state.appPath;
+        String toolPath = STATE.getAppPath();
 
         String toolOptions = "lint --path";
 
@@ -217,7 +265,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
                     }
                 }
 
-                if (state.quickFixEnabled) {
+                if (STATE.isQuickFixEnabled()) {
                     descriptors.add(manager.createProblemDescriptor(file, range, errorMessage.trim(), highlightType, false, new LocalQuickFix() {
                         @Nls
                         @NotNull

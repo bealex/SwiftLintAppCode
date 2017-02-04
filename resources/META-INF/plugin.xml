@@ -43,6 +43,6 @@ To configure SwiftLint, create ".swiftlint.yml" file in the project root.</p>
                          level="WARNING"
                          enabledByDefault="true"/>
         <applicationConfigurable instance="com.lonelybytes.swiftlint.Configuration"
-                                 displayName="SwiftLint configuration"/>
+                                 displayName="SwiftLint Configuration"/>
     </extensions>
 </idea-plugin>

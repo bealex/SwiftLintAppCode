@@ -1,9 +1,6 @@
 package com.lonelybytes.swiftlint;
 
 import com.intellij.execution.configurations.PathEnvironmentVariableUtil;
-import com.intellij.openapi.components.PersistentStateComponent;
-import com.intellij.openapi.components.Storage;
-import com.intellij.openapi.components.StoragePathMacros;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
@@ -62,7 +59,7 @@ public class Configuration implements Configurable {
         pathLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
         browser = new TextFieldWithBrowseButton(pathTextField);
-        browser.addBrowseFolderListener("SwiftLint Configuration", "Select path to SwiftLint executable", project,
+        browser.addBrowseFolderListener("SwiftLint State", "Select path to SwiftLint executable", project,
                 FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor());
         browser.getTextField().setText(DEFAULT_SWIFTLINT_PATH);
         browser.getTextField().getDocument().addDocumentListener(listener);
@@ -91,18 +88,39 @@ public class Configuration implements Configurable {
 
     @Override
     public void apply() throws ConfigurationException {
-        STATE.appPath = browser.getText();
-        STATE.quickFixEnabled = quickFixCheckbox.isSelected();
-        STATE.disableWhenNoConfigPresent = disableWhenNoConfigPresentCheckbox.isSelected();
+        SwiftLintInspection.State state = SwiftLintInspection.STATE;
+        if (state == null) {
+            state = new SwiftLintInspection.State();
+        }
+
+        state.setAppPath(browser.getText());
+        state.setQuickFixEnabled(quickFixCheckbox.isSelected());
+        state.setDisableWhenNoConfigPresent(disableWhenNoConfigPresentCheckbox.isSelected());
 
         modified = false;
     }
 
     @Override
     public void reset() {
-        browser.getTextField().setText(STATE.appPath);
-        quickFixCheckbox.setSelected(STATE.quickFixEnabled);
-        disableWhenNoConfigPresentCheckbox.setSelected(STATE.disableWhenNoConfigPresent);
+        SwiftLintInspection.State state = SwiftLintInspection.STATE;
+
+        String appPath = state.getAppPath();
+        
+        if (appPath == null || appPath.isEmpty()) {
+            File swiftLintFilePath = PathEnvironmentVariableUtil.findInPath("swiftlint");
+            if (swiftLintFilePath != null) {
+                browser.getTextField().setText(swiftLintFilePath.getAbsolutePath());
+            } else {
+                browser.getTextField().setText(DEFAULT_SWIFTLINT_PATH);
+            }
+
+            quickFixCheckbox.setSelected(true);
+            disableWhenNoConfigPresentCheckbox.setSelected(false);
+        } else {
+            browser.getTextField().setText(appPath);
+            quickFixCheckbox.setSelected(state.isQuickFixEnabled());
+            disableWhenNoConfigPresentCheckbox.setSelected(state.isDisableWhenNoConfigPresent());
+        }
 
         modified = false;
     }
@@ -141,34 +159,4 @@ public class Configuration implements Configurable {
             option.modified = true;
         }
     }
-
-    @com.intellij.openapi.components.State(name = "com.appcodeplugins.swiftlint")
-    @Storage(StoragePathMacros.WORKSPACE_FILE)
-    static class State implements PersistentStateComponent<State> {
-        public String appPath = null;
-        public boolean quickFixEnabled = false;
-        public boolean disableWhenNoConfigPresent = false;
-
-        {
-            File swiftLintFilePath = PathEnvironmentVariableUtil.findInPath("swiftlint");
-            if (swiftLintFilePath != null) {
-                appPath = swiftLintFilePath.getAbsolutePath();
-            } else {
-                appPath = DEFAULT_SWIFTLINT_PATH;
-            }
-        }
-
-        @Nullable
-        @Override
-        public State getState() {
-            return STATE;
-        }
-
-        @Override
-        public void loadState(State aState) {
-            STATE = aState;
-        }
-    }
-
-    static State STATE = new State();
 }
