@@ -7,6 +7,8 @@ import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.Result;
+import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -288,16 +290,14 @@ public class SwiftLintInspection extends LocalInspectionTool {
 
                         @Override
                         public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor problemDescriptor) {
-                            try {
-                                saveAll();
-                                Utils.executeCommandOnFile(toolPath, "autocorrect --path", file);
-                                ArrayList<VirtualFile> virtualFiles = new ArrayList<>();
-                                virtualFiles.add(file.getVirtualFile());
-                                LocalFileSystem.getInstance().refreshFiles(virtualFiles);
-                            } catch (IOException e) {
-                                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + e.getMessage(), NotificationType.INFORMATION));
-                            }
+                            WriteCommandAction writeCommandAction = new WriteCommandAction(project, file) {
+                                @Override
+                                protected void run(@NotNull Result aResult) throws Throwable {
+                                    executeSwiftLintQuickFix(toolPath, file);
+                                }
+                            };
 
+                            writeCommandAction.execute();
                         }
                     }));
                 } else {
@@ -321,6 +321,18 @@ public class SwiftLintInspection extends LocalInspectionTool {
         _fileHashes.put(file.getVirtualFile().getCanonicalPath(), newHash);
 
         return descriptors.toArray(new ProblemDescriptor[descriptors.size()]);
+    }
+
+    private void executeSwiftLintQuickFix(String aToolPath, @NotNull PsiFile file) {
+        saveAll();
+        ApplicationManager.getApplication().invokeLater(() -> {
+            try {
+                Utils.executeCommandOnFile(aToolPath, "autocorrect --path", file);
+                LocalFileSystem.getInstance().refreshFiles(Collections.singletonList(file.getVirtualFile()));
+            } catch (IOException aE) {
+                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "Can't quick-fix.\nIOException: " + aE.getMessage(), NotificationType.ERROR));
+            }
+        });
     }
 
     private static class DepthedFile {
