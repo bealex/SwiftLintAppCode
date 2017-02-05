@@ -17,6 +17,7 @@ To configure SwiftLint, create ".swiftlint.yml" file in the project root.</p>
         <p>1.7</p>
         <ul>
           <li>Fixed another settings error.</li>
+          <li>Restored undo functionality after quick-fix.</li>
           <li>Added possibility to disable plugin when no ".swiftlint.yml" present.</li>
         </ul>
         <p>1.6</p>
