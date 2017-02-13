@@ -7,7 +7,7 @@
 
     <description><![CDATA[
 <p>Provides highlighting of the SwiftLint errors. You can download it here: <a href="https://github.com/realm/SwiftLint">https://github.com/realm/SwiftLint</a>.
-To configure SwiftLint, create ".swiftlint.yml" file in the project root.</p>
+To configure SwiftLint, create ".swiftlint.yml" file in the project root. See <href="https://github.com/realm/SwiftLint#configuration">here</a> for available options.</p>
 
 <p>Created by Alexander Babaev, Stanislav Dombrovsky</p>
     ]]></description>
