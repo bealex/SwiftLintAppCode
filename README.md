@@ -10,7 +10,7 @@ This simple plugin allows to highlight errors and warnings from SwiftLint (https
 You should already have SwiftLint installed somewhere.
  1. Configure SwiftLint via `.swiftlint.yml` file, if needed. See [here](https://github.com/realm/SwiftLint#configuration) fir details.
  
-    Note that you have to set `reporter: "xcode"`.
+    Note that the plugin works with `reporter: "xcode"`.
     
  2. Install the plugin from the repository.
  
