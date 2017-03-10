@@ -109,7 +109,11 @@ public class Configuration implements Configurable {
         if (appPath == null || appPath.isEmpty()) {
             File swiftLintFilePath = PathEnvironmentVariableUtil.findInPath("swiftlint");
             if (swiftLintFilePath != null) {
-                browser.getTextField().setText(swiftLintFilePath.getAbsolutePath());
+                try {
+                    browser.getTextField().setText(swiftLintFilePath.getCanonicalPath());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             } else {
                 browser.getTextField().setText(DEFAULT_SWIFTLINT_PATH);
             }
