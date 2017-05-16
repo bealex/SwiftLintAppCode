@@ -1,14 +1,14 @@
-##SwiftLint for AppCode
+## SwiftLint for AppCode
 
 This simple plugin allows to highlight errors and warnings from SwiftLint (https://github.com/realm/SwiftLint) like this:
 
-![](http://d.pr/i/goBy/3VsjzzWL+)
+![](img/swiftlint@2x.png)
 
 
-###Installation
+### Installation
 
 You should already have SwiftLint installed somewhere.
- 1. Configure SwiftLint via `.swiftlint.yml` file, if needed. See [here](https://github.com/realm/SwiftLint#configuration) fir details.
+ 1. Configure SwiftLint via `.swiftlint.yml` file, if needed. See [here](https://github.com/realm/SwiftLint#configuration) for details.
  
     Note that the plugin works with `reporter: "xcode"`.
     
