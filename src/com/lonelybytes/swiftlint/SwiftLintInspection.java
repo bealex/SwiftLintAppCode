@@ -1,5 +1,6 @@
 package com.lonelybytes.swiftlint;
 
+import com.intellij.codeHighlighting.HighlightDisplayLevel;
 import com.intellij.codeInspection.*;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.lang.ASTNode;
@@ -15,7 +16,6 @@ import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.LocalFileSystem;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiWhiteSpace;
@@ -30,18 +30,11 @@ import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR;
 import static com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR_OR_WARNING;
 
-//@com.intellij.openapi.components.State(
-//    name = "com.appcodeplugins.swiftlint.v1_7",
-//    storages = { @Storage(StoragePathMacros.WORKSPACE_FILE) }
-//)
 public class SwiftLintInspection extends LocalInspectionTool {
-//        implements PersistentStateComponent<SwiftLintInspection.State>
-    // State
     @SuppressWarnings("WeakerAccess")
     static class State {
         public String getAppPath() {
@@ -72,21 +65,39 @@ public class SwiftLintInspection extends LocalInspectionTool {
     @SuppressWarnings("WeakerAccess")
     static State STATE = new State();
 
-//    @Nullable
-//    @Override
-//    public State getState() {
-//        return STATE;
-//    }
-//
-//    @Override
-//    public void loadState(State aState) {
-//        STATE = aState;
-//    }
-
-    // Main Class
-
     private static final String QUICK_FIX_NAME = "Autocorrect";
     private Map<String, Integer> _fileHashes = new HashMap<>();
+
+    @Nls
+    @NotNull
+    @Override
+    public String getDisplayName() {
+        return "All SwiftLint Rules";
+    }
+
+    @NotNull
+    @Override
+    public String getID() {
+        return "SwiftLintInspection";
+    }
+
+    @Nls
+    @NotNull
+    @Override
+    public String getGroupDisplayName() {
+        return "SwiftLint";
+    }
+
+    @Override
+    public boolean isEnabledByDefault() {
+        return true;
+    }
+
+    @NotNull
+    @Override
+    public HighlightDisplayLevel getDefaultLevel() {
+        return HighlightDisplayLevel.WARNING;
+    }
 
     @Override
     public void inspectionStarted(@NotNull LocalInspectionToolSession session, boolean isOnTheFly) {
@@ -107,17 +118,23 @@ public class SwiftLintInspection extends LocalInspectionTool {
             return null;
         }
 
-        if (STATE == null || STATE.getAppPath() == null) {
-            return null;
+        if (STATE == null) {
+            STATE = new State();
+            STATE.setAppPath(Configuration.DEFAULT_SWIFTLINT_PATH);
+            STATE.setDisableWhenNoConfigPresent(false);
+            STATE.setQuickFixEnabled(true);
+        } else if (STATE.getAppPath() == null || STATE.getAppPath().isEmpty()) {
+            STATE.setAppPath(Configuration.DEFAULT_SWIFTLINT_PATH);
         }
 
-        if (STATE.isDisableWhenNoConfigPresent() && !weHaveSwiftLintConfigInProject(file.getProject(), 5)) {
+        String swiftLintConfigPath = SwiftLintConfig.swiftLintConfigPath(file.getProject(), 5);
+        if (STATE.isDisableWhenNoConfigPresent() && swiftLintConfigPath == null) {
             return null;
         }
 
         String toolPath = STATE.getAppPath();
 
-        String toolOptions = "lint --path";
+        String toolOptions = "lint --reporter xcode --path";
 
         Pattern errorsPattern = Pattern.compile("^(\\S.*?):(?:(\\d+):)(?:(\\d+):)? (\\S+):([^\\(]*)\\((.*)\\)$");
         int lineMatchIndex = 2;
@@ -229,6 +246,11 @@ public class SwiftLintInspection extends LocalInspectionTool {
                                     range = psiElement != null ? psiElement.getTextRange() : range;
                                     break;
                                 }
+                                case "identifier_name": {
+                                    PsiElement psiElement = file.findElementAt(highlightStartOffset);
+                                    range = psiElement != null ? psiElement.getTextRange() : range;
+                                    break;
+                                }
                                 default:
                                     range = getNextTokenAtIndex(file, highlightStartOffset, errorType);
                                     break;
@@ -333,52 +355,6 @@ public class SwiftLintInspection extends LocalInspectionTool {
                 Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "Can't quick-fix.\nIOException: " + aE.getMessage(), NotificationType.ERROR));
             }
         });
-    }
-
-    private static class DepthedFile {
-        int _depth;
-        VirtualFile _file;
-
-        DepthedFile(int aDepth, VirtualFile aFile) {
-            _depth = aDepth;
-            _file = aFile;
-        }
-    }
-
-    private boolean weHaveSwiftLintConfigInProject(Project aProject, int aDepthToLookAt) {
-        if (aProject.getBaseDir().findChild(".swiftlint.yml") != null) {
-            return true;
-        }
-
-        List<DepthedFile> filesToLookAt = new LinkedList<>();
-        filesToLookAt.addAll(
-                Arrays.stream(aProject.getBaseDir().getChildren())
-                        .filter(VirtualFile::isDirectory)
-                        .map(aVirtualFile -> new DepthedFile(0, aVirtualFile))
-                        .collect(Collectors.toList())
-        );
-
-        while (!filesToLookAt.isEmpty()) {
-            DepthedFile file = filesToLookAt.get(0);
-            filesToLookAt.remove(0);
-
-            if (file._depth > aDepthToLookAt) {
-                break;
-            }
-
-            if (file._file.findChild(".swiftlint.yml") != null) {
-                return true;
-            } else {
-                filesToLookAt.addAll(
-                        Arrays.stream(file._file.getChildren())
-                                .filter(VirtualFile::isDirectory)
-                                .map(aVirtualFile -> new DepthedFile(file._depth + 1, aVirtualFile))
-                                .collect(Collectors.toList())
-                );
-            }
-        }
-
-        return false;
     }
 
     private void saveAll() {
@@ -534,11 +510,16 @@ public class SwiftLintInspection extends LocalInspectionTool {
     private boolean shouldCheck(@NotNull final PsiFile aFile, @NotNull final Document aDocument) {
         boolean isExtensionSwifty = "swift".equalsIgnoreCase(aFile.getVirtualFile().getExtension());
 
-        Integer previousHash = _fileHashes.get(aFile.getVirtualFile().getCanonicalPath());
-        int newHash = aDocument.getText().hashCode();
-        boolean fileChanged = previousHash == null || previousHash != newHash;
+        if (!isExtensionSwifty) {
+            return false;
+        }
 
-        return isExtensionSwifty;
+//        Integer previousHash = _fileHashes.get(aFile.getVirtualFile().getCanonicalPath());
+//        int newHash = aDocument.getText().hashCode();
+//
+//        return previousHash == null || previousHash != newHash;
+
+        return true;
     }
 
     private static ProblemHighlightType severityToHighlightType(@NotNull final String severity) {

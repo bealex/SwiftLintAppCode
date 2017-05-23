@@ -39,6 +39,8 @@ type_name:
   max_length:
     warning: 45
     error: 50
+  excluded:
+    - T
 
 variable_name:
   max_length:
@@ -77,36 +79,36 @@ reporter: "xcode"
 custom_rules:
   comments_space:
     name: "Space After Comment"
-    regex: "(^ *//\w+)"
+    regex: '(^ *//\w+)'
     message: "There should be a space after //"
     severity: warning
   
   empty_first_line:
     name: "Empty First Line"
-    regex: "(^[ a-zA-Z ]*(?:protocol|extension|class|struct|func) [ a-zA-Z0-9:,<>\.\(\)\"-=`]*\{\n( *)?\n)"
+    regex: '(^[ a-zA-Z ]*(?:protocol|extension|class|struct|func) [ a-zA-Z0-9:,<>\.\(\)\"-=`]*\{\n( *)?\n)'
     message: "There should not be an empty line after a declaration"
     severity: error
   
   empty_line_after_guard:
     name: "Empty Line After Guard"
-    regex: "(^ *guard[ a-zA-Z0-9=?.\(\),><!`]*\{[ a-zA-Z0-9=?.\(\),><!`\"]*\}\n *(?!(?:return|guard))\S+)"
+    regex: '(^ *guard[ a-zA-Z0-9=?.\(\),><!`]*\{[ a-zA-Z0-9=?.\(\),><!`\"]*\}\n *(?!(?:return|guard))\S+)'
     message: "There should be an empty line after a guard"
     severity: error
   
   empty_line_after_super:
     name: "Empty Line After Super"
-    regex: "(^ *super\.[ a-zA-Z0-9=?.\(\)\{\}:,><!`\"]*\n *(?!(?:\}|return))\S+)"
+    regex: '(^ *super\.[ a-zA-Z0-9=?.\(\)\{\}:,><!`\"]*\n *(?!(?:\}|return))\S+)'
     message: "There should be an empty line after super"
     severity: error
   
   multiple_empty_lines:
     name: "Multiple Empty Lines"
-    regex: "((?:\s*\n){3,})"
+    regex: '((?:\s*\n){3,})'
     message: "There are too many line breaks"
     severity: error
   
   custom_colon:
     name: "Custom Colon"
-    regex: "(?<!swiftlint|HH|mm|h|\"H|'H|\sH):([^\-\)\s\\\/\]])"
+    regex: '(?<!swiftlint|HH|mm|h|\"H|''H|\sH):([^\-\)\s\\\/\]])'
     message: "Colons should be next to the identifier when specifying a type."
     severity: error

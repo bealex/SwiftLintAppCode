@@ -1,4 +1,4 @@
 class TestWrongColon {
-    private let _someLongName:Int
-    var asd1 : Int
+    private let _someLongName:Int = 0
+    var asd1 : Int = 2
 }

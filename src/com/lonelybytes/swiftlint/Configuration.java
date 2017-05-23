@@ -22,7 +22,7 @@ import java.io.File;
 
 public class Configuration implements Configurable {
     static final String KEY_SWIFTLINT = "SwiftLint";
-    private static final String DEFAULT_SWIFTLINT_PATH = "/usr/local/bin/swiftlint";
+    static final String DEFAULT_SWIFTLINT_PATH = "/usr/local/bin/swiftlint";
 
     private boolean modified = false;
 

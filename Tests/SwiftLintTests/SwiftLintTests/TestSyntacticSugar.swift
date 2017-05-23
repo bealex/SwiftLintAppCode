@@ -1,5 +1,5 @@
 class TestWrongOperator {
-    static prefix func sugar() {
+    static func sugar() {
         let a = Dictionary<String, String>()
     }
 }

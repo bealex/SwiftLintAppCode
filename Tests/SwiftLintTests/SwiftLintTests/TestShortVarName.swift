@@ -1,11 +1,12 @@
 protocol TestShortVarName {
     associatedtype To
 
-    func apply() {
-    }
+    func apply()
+}
 
+class TestShortVarNameClass {
     static let h1 = ""
 
-    var i: String
-    public var ia: String
+    var i: String = ""
+    public var ia: String = ""
 }
