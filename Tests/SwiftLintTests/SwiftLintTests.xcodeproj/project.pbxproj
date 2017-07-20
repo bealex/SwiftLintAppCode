@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		2DBA105D965AEAC1DACF24AE /* TestSpacesBeforeClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA167D4CFF897800BAB812 /* TestSpacesBeforeClass.swift */; };
 		2DBA10E73A3B73F863470EF3 /* TestOpeningBrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA1A66AC3C391A2E7030CF /* TestOpeningBrace.swift */; };
+		2DBA119C5C0EAABBCD32CCCF /* TestForceUnwrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA1B8EAF30037B06985FEF /* TestForceUnwrap.swift */; };
 		2DBA11AFD55C15B7F7D429D0 /* TestWrongColon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA17AF163F9B1D1E6E39A9 /* TestWrongColon.swift */; };
 		2DBA11CFFA0573CD6AA3D785 /* TestSpacesInsideMethod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA1ACDE2AD89EB761316A2 /* TestSpacesInsideMethod.swift */; };
 		2DBA1257062A62D5073CCB01 /* TestSpacesAfterClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA129BE24B93E2C06A941D /* TestSpacesAfterClass.swift */; };
@@ -54,6 +55,7 @@
 		2DBA19B0214AEF5F2E5176D4 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = file.yml; name = .swiftlint.yml; path = SwiftLintTests/.swiftlint.yml; sourceTree = "<group>"; };
 		2DBA1A66AC3C391A2E7030CF /* TestOpeningBrace.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestOpeningBrace.swift; sourceTree = "<group>"; };
 		2DBA1ACDE2AD89EB761316A2 /* TestSpacesInsideMethod.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestSpacesInsideMethod.swift; sourceTree = "<group>"; };
+		2DBA1B8EAF30037B06985FEF /* TestForceUnwrap.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestForceUnwrap.swift; sourceTree = "<group>"; };
 		2DBA1BBCAE8A7A3FE1862859 /* TestUnusedParameters.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestUnusedParameters.swift; sourceTree = "<group>"; };
 		2DBA1C8C7E53A3E0AC517F16 /* TestWrongMark.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestWrongMark.swift; sourceTree = "<group>"; };
 		2DBA1CA1BD99AD6C7CE1520C /* TestWrongComma.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestWrongComma.swift; sourceTree = "<group>"; };
@@ -113,6 +115,7 @@
 				2DBA1BBCAE8A7A3FE1862859 /* TestUnusedParameters.swift */,
 				2DBA18079CADBB38DF614B6E /* TestSyntacticSugar.swift */,
 				2DBA1616802A5C70AD83EAE6 /* TestEnum.swift */,
+				2DBA1B8EAF30037B06985FEF /* TestForceUnwrap.swift */,
 			);
 			path = SwiftLintTests;
 			sourceTree = "<group>";
@@ -194,6 +197,7 @@
 				2DBA15F000F3F3E55B214715 /* TestUnusedParameters.swift in Sources */,
 				2DBA1AE67602B6F9FC34EC51 /* TestSyntacticSugar.swift in Sources */,
 				2DBA16FC6A4940AD6B127E6B /* TestEnum.swift in Sources */,
+				2DBA119C5C0EAABBCD32CCCF /* TestForceUnwrap.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -66,7 +66,6 @@ public class SwiftLintInspection extends LocalInspectionTool {
     static State STATE = new State();
 
     private static final String QUICK_FIX_NAME = "Autocorrect";
-    private Map<String, Integer> _fileHashes = new HashMap<>();
 
     @Nls
     @NotNull
@@ -134,8 +133,6 @@ public class SwiftLintInspection extends LocalInspectionTool {
 
         String toolPath = STATE.getAppPath();
 
-        String toolOptions = "lint --reporter xcode --path";
-
         Pattern errorsPattern = Pattern.compile("^(\\S.*?):(?:(\\d+):)(?:(\\d+):)? (\\S+):([^\\(]*)\\((.*)\\)$");
         int lineMatchIndex = 2;
         int columnMatchIndex = 3;
@@ -146,15 +143,20 @@ public class SwiftLintInspection extends LocalInspectionTool {
         List<ProblemDescriptor> descriptors = new ArrayList<>();
 
         try {
-            String fileText = Utils.executeCommandOnFile(toolPath, toolOptions, file);
+            String lintedErrors = Utils.executeCommandOnFile(toolPath, new String[] {
+                    "lint",
+                    "--config", swiftLintConfigPath,
+                    "--reporter", "xcode",
+                    "--use-stdin"
+            }, file);
 
-//            System.out.println("\n" + fileText + "\n");
+            System.out.println("\n" + lintedErrors + "\n");
 
-            if (fileText.isEmpty()) {
+            if (lintedErrors.isEmpty()) {
                 return descriptors.toArray(new ProblemDescriptor[descriptors.size()]);
             }
 
-            Scanner scanner = new Scanner(fileText);
+            Scanner scanner = new Scanner(lintedErrors);
 
             String line;
             while (scanner.hasNext()) {
@@ -243,7 +245,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
                                     break;
                                 case "type_name": {
                                     PsiElement psiElement = file.findElementAt(highlightStartOffset);
-                                    range = psiElement != null ? psiElement.getTextRange() : range;
+                                    range = psiElement != null ? getNextTokenAtIndex(file, highlightStartOffset, errorType) : range;
                                     break;
                                 }
                                 case "identifier_name": {
@@ -339,9 +341,6 @@ public class SwiftLintInspection extends LocalInspectionTool {
             ex.printStackTrace();
         }
 
-        int newHash = document.getText().hashCode();
-        _fileHashes.put(file.getVirtualFile().getCanonicalPath(), newHash);
-
         return descriptors.toArray(new ProblemDescriptor[descriptors.size()]);
     }
 
@@ -349,7 +348,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
         saveAll();
         ApplicationManager.getApplication().invokeLater(() -> {
             try {
-                Utils.executeCommandOnFile(aToolPath, "autocorrect --path", file);
+                Utils.executeCommandOnFile(aToolPath, new String[] { "autocorrect", "--path" }, file);
                 LocalFileSystem.getInstance().refreshFiles(Collections.singletonList(file.getVirtualFile()));
             } catch (IOException aE) {
                 Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "Can't quick-fix.\nIOException: " + aE.getMessage(), NotificationType.ERROR));
@@ -508,18 +507,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
     }
 
     private boolean shouldCheck(@NotNull final PsiFile aFile, @NotNull final Document aDocument) {
-        boolean isExtensionSwifty = "swift".equalsIgnoreCase(aFile.getVirtualFile().getExtension());
-
-        if (!isExtensionSwifty) {
-            return false;
-        }
-
-//        Integer previousHash = _fileHashes.get(aFile.getVirtualFile().getCanonicalPath());
-//        int newHash = aDocument.getText().hashCode();
-//
-//        return previousHash == null || previousHash != newHash;
-
-        return true;
+        return "swift".equalsIgnoreCase(aFile.getVirtualFile().getExtension());
     }
 
     private static ProblemHighlightType severityToHighlightType(@NotNull final String severity) {

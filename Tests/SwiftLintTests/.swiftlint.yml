@@ -1,13 +1,14 @@
 disabled_rules:
   - todo
   - nesting
-  - missing_docs
-  - valid_docs
   - type_body_length
-  - force_cast
-  - force_unwrapping
 opt_in_rules:
   - empty_count
+  - multiline_parameters
+  - extension_access_modifier
+  - implicit_return
+  - force_cast
+  - force_unwrapping
 
 excluded:
   - Carthage
@@ -25,7 +26,6 @@ trailing_newline: error
 trailing_semicolon: error
 
 comma: error
-colon: error
 opening_brace: error
 empty_count: error
 legacy_constructor: error
@@ -42,7 +42,7 @@ type_name:
   excluded:
     - T
 
-variable_name:
+identifier_name:
   max_length:
     warning: 40
     error: 50
