@@ -1,0 +1,10 @@
+framework module SwiftyTextTable {
+  umbrella header "SwiftyTextTable.h"
+
+  export *
+  module * { export * }
+}
+
+module SwiftyTextTable.Swift {
+    header "SwiftyTextTable-Swift.h"
+}

@@ -14,8 +14,8 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiWhiteSpace;
@@ -27,9 +27,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR;
 import static com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR_OR_WARNING;
@@ -66,6 +66,9 @@ public class SwiftLintInspection extends LocalInspectionTool {
     static State STATE = new State();
 
     private static final String QUICK_FIX_NAME = "Autocorrect";
+
+    private static final SwiftLint swiftLint = new SwiftLint();
+    private static boolean inspectionIsRunning = false;
 
     @Nls
     @NotNull
@@ -112,6 +115,21 @@ public class SwiftLintInspection extends LocalInspectionTool {
     @Nullable
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
+        if (inspectionIsRunning) {
+            return null;
+        }
+
+        inspectionIsRunning = true;
+
+        try {
+            return getProblemDescriptors(file, manager);
+        } finally {
+            inspectionIsRunning = false;
+        }
+    }
+
+    @Nullable
+    private ProblemDescriptor[] getProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager) {
         Document document = FileDocumentManager.getInstance().getDocument(file.getVirtualFile());
         if (document == null || document.getLineCount() == 0 || !shouldCheck(file, document)) {
             return null;
@@ -133,203 +151,29 @@ public class SwiftLintInspection extends LocalInspectionTool {
 
         String toolPath = STATE.getAppPath();
 
-        Pattern errorsPattern = Pattern.compile("^(\\S.*?):(?:(\\d+):)(?:(\\d+):)? (\\S+):([^\\(]*)\\((.*)\\)$");
-        int lineMatchIndex = 2;
-        int columnMatchIndex = 3;
-        int severityMatchIndex = 4;
-        int messageMatchIndex = 5;
-        int errorTypeMatchIndex = 6;
-
         List<ProblemDescriptor> descriptors = new ArrayList<>();
 
         try {
-            String lintedErrors = Utils.executeCommandOnFile(toolPath, new String[] {
-                    "lint",
-                    "--config", swiftLintConfigPath,
-                    "--reporter", "xcode",
-                    "--use-stdin"
-            }, file);
+            List<String> lintedErrors = swiftLint.executeSwiftLint(
+                "/Users/alex/Helpers/SwiftLintService/swiftLintService",
+                swiftLintConfigPath,
+                file
+            );
+//            String lintedErrors = swiftLint.executeSwiftLint(toolPath, swiftLintConfigPath, file);
 
-            System.out.println("\n" + lintedErrors + "\n");
+//            System.out.println("\n" + lintedErrors + "\n");
 
             if (lintedErrors.isEmpty()) {
                 return descriptors.toArray(new ProblemDescriptor[descriptors.size()]);
             }
 
-            Scanner scanner = new Scanner(lintedErrors);
-
-            String line;
-            while (scanner.hasNext()) {
-                line = scanner.nextLine();
-                if (!line.contains(":")) {
-                    continue;
-                }
-
-                Matcher matcher = errorsPattern.matcher(line);
-
-                if (!matcher.matches()) {
-                    continue;
-                }
-
-                final String errorType = matcher.group(errorTypeMatchIndex);
-
-                int linePointerFix = errorType.equals("mark") ? -1 : -1;
-
-                int lineNumber = Math.min(document.getLineCount() + linePointerFix, Integer.parseInt(matcher.group(lineMatchIndex)) + linePointerFix);
-                lineNumber = Math.max(0, lineNumber);
-
-                int columnNumber = matcher.group(columnMatchIndex) == null ? -1 : Math.max(0, Integer.parseInt(matcher.group(columnMatchIndex)));
-
-                if (errorType.equals("empty_first_line")) {
-                    // SwiftLint shows some strange identifier on the previous line
-                    lineNumber += 1;
-                    columnNumber = -1;
-                }
-
-                final String severity = matcher.group(severityMatchIndex);
-                final String errorMessage = matcher.group(messageMatchIndex);
-
-                int highlightStartOffset = document.getLineStartOffset(lineNumber);
-                int highlightEndOffset = lineNumber < document.getLineCount() - 1
-                        ? document.getLineStartOffset(lineNumber + 1)
-                        : document.getLineEndOffset(lineNumber);
-
-                TextRange range = TextRange.create(highlightStartOffset, highlightEndOffset);
-
-                boolean weHaveAColumn = columnNumber > 0;
-
-                if (weHaveAColumn) {
-                    highlightStartOffset = Math.min(document.getTextLength() - 1, highlightStartOffset + columnNumber - 1);
-                }
-
-                CharSequence chars = document.getImmutableCharSequence();
-                if (chars.length() <= highlightStartOffset) {
-                    // This can happen when we browsing a file after it has been edited (some lines removed for example)
-                    continue;
-                }
-
-                char startChar = chars.charAt(highlightStartOffset);
-                PsiElement startPsiElement = file.findElementAt(highlightStartOffset);
-                ASTNode startNode = startPsiElement == null ? null : startPsiElement.getNode();
-
-                boolean isErrorInLineComment = startNode != null && startNode.getElementType().toString().equals("EOL_COMMENT");
-
-                ProblemHighlightType highlightType = severityToHighlightType(severity);
-
-                if (isErrorInLineComment) {
-                    range = TextRange.create(document.getLineStartOffset(lineNumber), document.getLineEndOffset(lineNumber));
-                } else {
-                    boolean isErrorNewLinesOnly = (startChar == '\n');
-                    boolean isErrorInSymbol = !Character.isLetterOrDigit(startChar) && !Character.isWhitespace(startChar);
-                    isErrorInSymbol |= errorType.equals("opening_brace") || errorType.equals("colon");
-
-                    if (!isErrorInSymbol) {
-                        if (!isErrorNewLinesOnly && weHaveAColumn) {
-                            // SwiftLint returns column for the previous non-space token, not the erroneous one. Let's try to correct it.
-                            switch (errorType) {
-                                case "unused_closure_parameter": {
-                                    PsiElement psiElement = file.findElementAt(highlightStartOffset);
-                                    range = psiElement != null ? psiElement.getTextRange() : range;
-                                    break;
-                                }
-                                case "syntactic_sugar": {
-                                    PsiElement psiElement = file.findElementAt(highlightStartOffset);
-                                    if (psiElement != null) {
-                                        psiElement = psiElement.getParent();
-                                    }
-                                    range = psiElement != null ? psiElement.getTextRange() : range;
-                                    break;
-                                }
-                                case "variable_name":
-                                    range = findVarInDefinition(file, highlightStartOffset, errorType);
-                                    break;
-                                case "type_name": {
-                                    PsiElement psiElement = file.findElementAt(highlightStartOffset);
-                                    range = psiElement != null ? getNextTokenAtIndex(file, highlightStartOffset, errorType) : range;
-                                    break;
-                                }
-                                case "identifier_name": {
-                                    PsiElement psiElement = file.findElementAt(highlightStartOffset);
-                                    range = psiElement != null ? psiElement.getTextRange() : range;
-                                    break;
-                                }
-                                default:
-                                    range = getNextTokenAtIndex(file, highlightStartOffset, errorType);
-                                    break;
-                            }
-                        } else if (isErrorNewLinesOnly) {
-                            // Let's select all empty lines here, we need to show that something is wrong with them
-                            range = getEmptyLinesAroundIndex(document, highlightStartOffset);
-                        }
-                    } else {
-                        PsiElement psiElement = file.findElementAt(highlightStartOffset);
-                        if (psiElement != null) {
-                            range = psiElement.getTextRange();
-
-                            if (errorType.equals("colon")) {
-                                range = getNextTokenAtIndex(file, highlightStartOffset, errorType);
-                            }
-                        }
-                    }
-
-                    if (errorType.equals("opening_brace") && Character.isWhitespace(startChar)) {
-                        range = getNextTokenAtIndex(file, highlightStartOffset, errorType);
-                    }
-
-                    if (errorType.equals("valid_docs")) {
-                        range = prevElement(file, highlightStartOffset).getTextRange();
-                    }
-
-                    if (errorType.equals("trailing_newline") && !weHaveAColumn && chars.charAt(chars.length() - 1) != '\n') {
-                        highlightType = GENERIC_ERROR;
-                        range = TextRange.create(highlightEndOffset - 1, highlightEndOffset);
-                    }
-
-                    if (isErrorNewLinesOnly) {
-                        // Sometimes we need to highlight several returns. Usual error highlighting will not work in this case
-                        highlightType = GENERIC_ERROR_OR_WARNING;
-                    }
-                }
-
-                if (STATE.isQuickFixEnabled()) {
-                    descriptors.add(manager.createProblemDescriptor(file, range, errorMessage.trim(), highlightType, false, new LocalQuickFix() {
-                        @Nls
-                        @NotNull
-                        @Override
-                        public String getName() {
-                            return QUICK_FIX_NAME;
-                        }
-
-                        @Nls
-                        @NotNull
-                        @Override
-                        public String getFamilyName() {
-                            return QUICK_FIX_NAME;
-                        }
-
-                        @Override
-                        public boolean startInWriteAction() {
-                            return false;
-                        }
-
-                        @Override
-                        public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor problemDescriptor) {
-                            WriteCommandAction writeCommandAction = new WriteCommandAction(project, file) {
-                                @Override
-                                protected void run(@NotNull Result aResult) throws Throwable {
-                                    executeSwiftLintQuickFix(toolPath, file);
-                                }
-                            };
-
-                            writeCommandAction.execute();
-                        }
-                    }));
-                } else {
-                    descriptors.add(manager.createProblemDescriptor(file, range, errorMessage.trim(), highlightType, false, LocalQuickFix.EMPTY_ARRAY));
-                }
-            }
+            processLintErrors(
+                file, manager, document,
+                toolPath,
+                descriptors, lintedErrors
+            );
         } catch (ProcessCanceledException ex) {
-            // Do nothing here
+            ex.printStackTrace();
         } catch (IOException ex) {
             if (ex.getMessage().contains("No such file or directory") || ex.getMessage().contains("error=2")) {
                 Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "Can't find swiftlint utility here:\n" + toolPath + "\nPlease check the path in settings.", NotificationType.ERROR));
@@ -344,16 +188,207 @@ public class SwiftLintInspection extends LocalInspectionTool {
         return descriptors.toArray(new ProblemDescriptor[descriptors.size()]);
     }
 
+    private void processLintErrors(@NotNull PsiFile file, @NotNull InspectionManager manager, Document aDocument, String aToolPath, List<ProblemDescriptor> aDescriptors, List<String> aLintedErrors) {
+        // file,line,character,severity,type,reason,rule_id,
+        // ___ ,10,  25,       Error,   Force Cast,Force casts should be avoided.,force_cast
+
+        for (String line : aLintedErrors) {
+            String[] lineParts = line.split("\\s*\\,\\s*");
+            if (lineParts.length == 0 || !line.contains(",") || line.trim().isEmpty()) {
+                continue;
+            }
+
+            if (lineParts[0].equals("file")) {
+                lineParts = Arrays.copyOfRange(lineParts, 7, lineParts.length);
+            }
+
+            while (lineParts.length >= 7) {
+                String[] parts = Arrays.copyOfRange(lineParts, 0, 7);
+                lineParts = Arrays.copyOfRange(lineParts, 7, lineParts.length);
+
+                processErrorLine(file, manager, aDocument, aToolPath, aDescriptors, parts);
+            }
+        }
+    }
+
+    private void processErrorLine(@NotNull PsiFile file, @NotNull InspectionManager manager, Document aDocument, String aToolPath, List<ProblemDescriptor> aDescriptors, String[] aParts) {
+        final int fileIndex = 0;
+        final int lineIndex = 1;
+        final int columnIndex = 2;
+        final int severityIndex = 3;
+        final int typeIndex = 4;
+        final int messageIndex = 5;
+        final int ruleIndex = 6;
+
+        final String rule = aParts[ruleIndex];
+
+        int linePointerFix = rule.equals("mark") ? -1 : -1;
+
+        int lineNumber = Math.min(aDocument.getLineCount() + linePointerFix, Integer.parseInt(aParts[lineIndex]) + linePointerFix);
+        lineNumber = Math.max(0, lineNumber);
+
+        int columnNumber = aParts[columnIndex].isEmpty() ? -1 : Math.max(0, Integer.parseInt(aParts[columnIndex]));
+
+        if (rule.equals("empty_first_line")) {
+            // SwiftLint shows some strange identifier on the previous line
+            lineNumber += 1;
+            columnNumber = -1;
+        }
+
+        final String severity = aParts[severityIndex];
+        final String errorMessage = aParts[messageIndex];
+
+        int highlightStartOffset = aDocument.getLineStartOffset(lineNumber);
+        int highlightEndOffset = lineNumber < aDocument.getLineCount() - 1
+                ? aDocument.getLineStartOffset(lineNumber + 1)
+                : aDocument.getLineEndOffset(lineNumber);
+
+        TextRange range = TextRange.create(highlightStartOffset, highlightEndOffset);
+
+        boolean weHaveAColumn = columnNumber > 0;
+
+        if (weHaveAColumn) {
+            highlightStartOffset = Math.min(aDocument.getTextLength() - 1, highlightStartOffset + columnNumber - 1);
+        }
+
+        CharSequence chars = aDocument.getImmutableCharSequence();
+        if (chars.length() <= highlightStartOffset) {
+            // This can happen when we browsing a file after it has been edited (some lines removed for example)
+            return;
+        }
+
+        char startChar = chars.charAt(highlightStartOffset);
+        PsiElement startPsiElement = file.findElementAt(highlightStartOffset);
+        ASTNode startNode = startPsiElement == null ? null : startPsiElement.getNode();
+
+        boolean isErrorInLineComment = startNode != null && startNode.getElementType().toString().equals("EOL_COMMENT");
+
+        ProblemHighlightType highlightType = severityToHighlightType(severity);
+
+        if (isErrorInLineComment) {
+            range = TextRange.create(aDocument.getLineStartOffset(lineNumber), aDocument.getLineEndOffset(lineNumber));
+        } else {
+            boolean isErrorNewLinesOnly = (startChar == '\n');
+            boolean isErrorInSymbol = !Character.isLetterOrDigit(startChar) && !Character.isWhitespace(startChar);
+            isErrorInSymbol |= rule.equals("opening_brace") || rule.equals("colon");
+
+            if (!isErrorInSymbol) {
+                if (!isErrorNewLinesOnly && weHaveAColumn) {
+                    // SwiftLint returns column for the previous non-space token, not the erroneous one. Let's try to correct it.
+                    switch (rule) {
+                        case "unused_closure_parameter": {
+                            PsiElement psiElement = file.findElementAt(highlightStartOffset);
+                            range = psiElement != null ? psiElement.getTextRange() : range;
+                            break;
+                        }
+                        case "syntactic_sugar": {
+                            PsiElement psiElement = file.findElementAt(highlightStartOffset);
+                            if (psiElement != null) {
+                                psiElement = psiElement.getParent();
+                            }
+                            range = psiElement != null ? psiElement.getTextRange() : range;
+                            break;
+                        }
+                        case "variable_name":
+                            range = findVarInDefinition(file, highlightStartOffset, rule);
+                            break;
+                        case "type_name": {
+                            PsiElement psiElement = file.findElementAt(highlightStartOffset);
+                            range = psiElement != null ? getNextTokenAtIndex(file, highlightStartOffset, rule) : range;
+                            break;
+                        }
+                        case "identifier_name": {
+                            PsiElement psiElement = file.findElementAt(highlightStartOffset);
+                            range = psiElement != null ? psiElement.getTextRange() : range;
+                            break;
+                        }
+                        default:
+                            range = getNextTokenAtIndex(file, highlightStartOffset, rule);
+                            break;
+                    }
+                } else if (isErrorNewLinesOnly) {
+                    // Let's select all empty lines here, we need to show that something is wrong with them
+                    range = getEmptyLinesAroundIndex(aDocument, highlightStartOffset);
+                }
+            } else {
+                PsiElement psiElement = file.findElementAt(highlightStartOffset);
+                if (psiElement != null) {
+                    range = psiElement.getTextRange();
+
+                    if (rule.equals("colon")) {
+                        range = getNextTokenAtIndex(file, highlightStartOffset, rule);
+                    }
+                }
+            }
+
+            if (rule.equals("opening_brace") && Character.isWhitespace(startChar)) {
+                range = getNextTokenAtIndex(file, highlightStartOffset, rule);
+            }
+
+            if (rule.equals("valid_docs")) {
+                range = prevElement(file, highlightStartOffset).getTextRange();
+            }
+
+            if (rule.equals("trailing_newline") && !weHaveAColumn && chars.charAt(chars.length() - 1) != '\n') {
+                highlightType = GENERIC_ERROR;
+                range = TextRange.create(highlightEndOffset - 1, highlightEndOffset);
+            }
+
+            if (isErrorNewLinesOnly) {
+                // Sometimes we need to highlight several returns. Usual error highlighting will not work in this case
+                highlightType = GENERIC_ERROR_OR_WARNING;
+            }
+        }
+
+        if (STATE.isQuickFixEnabled()) {
+            aDescriptors.add(manager.createProblemDescriptor(file, range, errorMessage.trim(), highlightType, false, new LocalQuickFix() {
+                @Nls
+                @NotNull
+                @Override
+                public String getName() {
+                    return QUICK_FIX_NAME;
+                }
+
+                @Nls
+                @NotNull
+                @Override
+                public String getFamilyName() {
+                    return QUICK_FIX_NAME;
+                }
+
+                @Override
+                public boolean startInWriteAction() {
+                    return false;
+                }
+
+                @Override
+                public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor problemDescriptor) {
+                    WriteCommandAction writeCommandAction = new WriteCommandAction(project, file) {
+                        @Override
+                        protected void run(@NotNull Result aResult) throws Throwable {
+                            executeSwiftLintQuickFix(aToolPath, file);
+                        }
+                    };
+
+                    writeCommandAction.execute();
+                }
+            }));
+        } else {
+            aDescriptors.add(manager.createProblemDescriptor(file, range, errorMessage.trim(), highlightType, false, LocalQuickFix.EMPTY_ARRAY));
+        }
+    }
+
     private void executeSwiftLintQuickFix(String aToolPath, @NotNull PsiFile file) {
         saveAll();
-        ApplicationManager.getApplication().invokeLater(() -> {
-            try {
-                Utils.executeCommandOnFile(aToolPath, new String[] { "autocorrect", "--path" }, file);
-                LocalFileSystem.getInstance().refreshFiles(Collections.singletonList(file.getVirtualFile()));
-            } catch (IOException aE) {
-                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "Can't quick-fix.\nIOException: " + aE.getMessage(), NotificationType.ERROR));
-            }
-        });
+        // TODO:
+//        ApplicationManager.getApplication().invokeLater(() -> {
+//            try {
+//                swiftLint.executeSwiftLint(aToolPath, new String[] { "autocorrect", "--path" }, file);
+//                LocalFileSystem.getInstance().refreshFiles(Collections.singletonList(file.getVirtualFile()));
+//            } catch (IOException aE) {
+//                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "Can't quick-fix.\nIOException: " + aE.getMessage(), NotificationType.ERROR));
+//            }
+//        });
     }
 
     private void saveAll() {
@@ -507,7 +542,10 @@ public class SwiftLintInspection extends LocalInspectionTool {
     }
 
     private boolean shouldCheck(@NotNull final PsiFile aFile, @NotNull final Document aDocument) {
-        return "swift".equalsIgnoreCase(aFile.getVirtualFile().getExtension());
+        boolean isSwift = "swift".equalsIgnoreCase(aFile.getVirtualFile().getExtension());
+        boolean isInProject = ProjectFileIndex.SERVICE.getInstance(aFile.getProject()).isInSource(aFile.getVirtualFile());
+
+        return isSwift && isInProject;
     }
 
     private static ProblemHighlightType severityToHighlightType(@NotNull final String severity) {
