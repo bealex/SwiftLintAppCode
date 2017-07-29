@@ -16,6 +16,7 @@ import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiWhiteSpace;
@@ -29,6 +30,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR;
@@ -66,9 +68,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
     static State STATE = new State();
 
     private static final String QUICK_FIX_NAME = "Autocorrect";
-
     private static final SwiftLint swiftLint = new SwiftLint();
-    private static boolean inspectionIsRunning = false;
 
     @Nls
     @NotNull
@@ -115,17 +115,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
     @Nullable
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
-        if (inspectionIsRunning) {
-            return null;
-        }
-
-        inspectionIsRunning = true;
-
-        try {
-            return getProblemDescriptors(file, manager);
-        } finally {
-            inspectionIsRunning = false;
-        }
+        return getProblemDescriptors(file, manager);
     }
 
     @Nullable
@@ -154,12 +144,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
         List<ProblemDescriptor> descriptors = new ArrayList<>();
 
         try {
-            List<String> lintedErrors = swiftLint.executeSwiftLint(
-                "/Users/alex/Helpers/SwiftLintService/swiftLintService",
-                swiftLintConfigPath,
-                file
-            );
-//            String lintedErrors = swiftLint.executeSwiftLint(toolPath, swiftLintConfigPath, file);
+            List<String> lintedErrors = swiftLint.executeSwiftLint(toolPath, "lint", swiftLintConfigPath, file, document);
 
 //            System.out.println("\n" + lintedErrors + "\n");
 
@@ -169,7 +154,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
 
             processLintErrors(
                 file, manager, document,
-                toolPath,
+                toolPath, swiftLintConfigPath,
                 descriptors, lintedErrors
             );
         } catch (ProcessCanceledException ex) {
@@ -188,7 +173,10 @@ public class SwiftLintInspection extends LocalInspectionTool {
         return descriptors.toArray(new ProblemDescriptor[descriptors.size()]);
     }
 
-    private void processLintErrors(@NotNull PsiFile file, @NotNull InspectionManager manager, Document aDocument, String aToolPath, List<ProblemDescriptor> aDescriptors, List<String> aLintedErrors) {
+    private void processLintErrors(@NotNull PsiFile file, @NotNull InspectionManager manager, Document aDocument,
+                                   String aToolPath, String aConfigPath,
+                                   List<ProblemDescriptor> aDescriptors,
+                                   List<String> aLintedErrors) {
         // file,line,character,severity,type,reason,rule_id,
         // ___ ,10,  25,       Error,   Force Cast,Force casts should be avoided.,force_cast
 
@@ -206,12 +194,15 @@ public class SwiftLintInspection extends LocalInspectionTool {
                 String[] parts = Arrays.copyOfRange(lineParts, 0, 7);
                 lineParts = Arrays.copyOfRange(lineParts, 7, lineParts.length);
 
-                processErrorLine(file, manager, aDocument, aToolPath, aDescriptors, parts);
+                processErrorLine(file, manager, aDocument, aToolPath, aConfigPath, aDescriptors, parts);
             }
         }
     }
 
-    private void processErrorLine(@NotNull PsiFile file, @NotNull InspectionManager manager, Document aDocument, String aToolPath, List<ProblemDescriptor> aDescriptors, String[] aParts) {
+    private void processErrorLine(@NotNull PsiFile file, @NotNull InspectionManager manager, Document aDocument,
+                                  String aToolPath, String aConfigPath,
+                                  List<ProblemDescriptor> aDescriptors,
+                                  String[] aParts) {
         final int fileIndex = 0;
         final int lineIndex = 1;
         final int columnIndex = 2;
@@ -366,7 +357,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
                     WriteCommandAction writeCommandAction = new WriteCommandAction(project, file) {
                         @Override
                         protected void run(@NotNull Result aResult) throws Throwable {
-                            executeSwiftLintQuickFix(aToolPath, file);
+                            executeSwiftLintQuickFix(aToolPath, aConfigPath, file);
                         }
                     };
 
@@ -378,17 +369,17 @@ public class SwiftLintInspection extends LocalInspectionTool {
         }
     }
 
-    private void executeSwiftLintQuickFix(String aToolPath, @NotNull PsiFile file) {
+    private void executeSwiftLintQuickFix(String aToolPath, String aConfigPath, @NotNull PsiFile file) {
         saveAll();
-        // TODO:
-//        ApplicationManager.getApplication().invokeLater(() -> {
-//            try {
-//                swiftLint.executeSwiftLint(aToolPath, new String[] { "autocorrect", "--path" }, file);
-//                LocalFileSystem.getInstance().refreshFiles(Collections.singletonList(file.getVirtualFile()));
-//            } catch (IOException aE) {
-//                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "Can't quick-fix.\nIOException: " + aE.getMessage(), NotificationType.ERROR));
-//            }
-//        });
+        ApplicationManager.getApplication().invokeLater(() -> {
+            try {
+                swiftLint.executeSwiftLint(aToolPath, "autocorrect", aConfigPath, file, null);
+                LocalFileSystem.getInstance().refreshFiles(Collections.singletonList(file.getVirtualFile()));
+            } catch (Exception e) {
+                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "Can't quick-fix.\nException: " + e.getMessage(), NotificationType.ERROR));
+                e.printStackTrace();
+            }
+        });
     }
 
     private void saveAll() {

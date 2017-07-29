@@ -3,18 +3,22 @@ package com.lonelybytes.swiftlint;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.editor.Document;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 class SwiftLint {
     private static final String TERMINATOR = "|||end|||";
+
     private String _toolPath;
-    private String _configFilePath;
+    private String _configPath;
 
     private Process process;
     private BufferedWriter stdOut;
@@ -27,6 +31,9 @@ class SwiftLint {
         if (process != null) {
             process.destroy();
         }
+
+        stdOut = null;
+        process = null;
     }
 
     private void restartSwiftLint() throws IOException {
@@ -34,19 +41,7 @@ class SwiftLint {
 
         closeProcess();
 
-        String[] parameters;
-        if (_configFilePath == null) {
-            parameters = new String[]{
-                    _toolPath,
-                    "--reporter", "csv"
-            };
-        } else {
-            parameters = new String[]{
-                    _toolPath,
-                    "--config", _configFilePath,
-                    "--reporter", "csv"
-            };
-        }
+        String[] parameters = processParameters();
 
         String[] environment = new String[]{
                 "DYLD_FRAMEWORK_PATH", frameworkSearchPath
@@ -56,31 +51,131 @@ class SwiftLint {
         stdOut = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), "utf-8"));
     }
 
-    private void sendFileToSwiftLint(@NotNull PsiElement file) throws IOException {
-        stdOut.write(file.getText());
-        stdOut.write(TERMINATOR + "\n");
-        stdOut.flush();
+    @NotNull
+    private String[] processParameters() {
+        return processParameters("lint");
     }
 
-    List<String> executeSwiftLint(@NotNull final String toolPath, @Nullable final String configFilePath, @NotNull final PsiElement aElement) throws IOException {
-        if (!toolPath.equals(_toolPath) || !configFilePath.equals(_configFilePath) || process == null || stdOut == null) {
+    @NotNull
+    private String[] processParameters(@NotNull final String aAction) {
+        String[] parameters;
+        if (_configPath == null) {
+            parameters = new String[]{
+                    _toolPath, aAction,
+                    "--use-stdin",
+                    "--no-cache",
+                    "--reporter", "csv"
+            };
+        } else {
+            parameters = new String[]{
+                    _toolPath, aAction,
+                    "--use-stdin",
+                    "--no-cache",
+                    "--config", _configPath,
+                    "--reporter", "csv"
+            };
+        }
+        return parameters;
+    }
+
+    List<String> executeSwiftLint(@NotNull final String toolPath, @NotNull final String aAction, @Nullable String configPath, @NotNull final PsiElement aElement, Document aDocument) throws IOException, InterruptedException {
+        if (aAction.equals("autocorrect") && aElement instanceof PsiFile) {
+            if (toolPath.endsWith("swiftLintService")) {
+                throw new IOException("Autocorrection is unavailable when using swiftLintService");
+            } else {
+                processAutocorrect(toolPath, configPath, ((PsiFile) aElement));
+            }
+        } else {
+            String fileText = "";
+            if (aDocument != null) {
+                fileText = aDocument.getText();
+            } else {
+                fileText = aElement.getText();
+            }
+
+            if (toolPath.endsWith("swiftlint")) {
+                return processAsApp(toolPath, aAction, configPath, fileText);
+            } else if (toolPath.endsWith("swiftLintService")) {
+                return processAsService(toolPath, configPath, fileText);
+            }
+        }
+
+        return Collections.emptyList();
+    }
+
+    private void processAutocorrect(String aToolPath, String aConfigPath, PsiFile aFile) throws IOException, InterruptedException {
+        String[] parameters = new String[]{
+                aToolPath, "autocorrect",
+                "--no-cache",
+                "--config", aConfigPath,
+                "--path", aFile.getVirtualFile().getCanonicalPath()
+        };
+
+        process = Runtime.getRuntime().exec(parameters);
+        Thread outputThread = new Thread(() -> {
+            BufferedReader inputStream = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+            try {
+                //noinspection StatementWithEmptyBody
+                while (inputStream.readLine() != null) {
+                    // do nothing
+                }
+            } catch (IOException ex) {
+                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + ex.getMessage(), NotificationType.INFORMATION));
+                ex.printStackTrace();
+            }
+        });
+        outputThread.start();
+
+        outputThread.join(5000);
+    }
+
+    @NotNull
+    private List<String> processAsApp(@NotNull String toolPath, @NotNull final String aAction, @Nullable String configPath, @NotNull String aFileText) throws IOException, InterruptedException {
+        _configPath = configPath;
+        _toolPath = toolPath;
+
+        String[] parameters = processParameters(aAction);
+
+        process = Runtime.getRuntime().exec(parameters);
+        stdOut = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), "utf-8"));
+
+        final List<String> outputLines = sendFileAndProcessSwiftLintOutput(aFileText, false);
+
+        closeProcess();
+
+        stdOut = null;
+        process = null;
+
+        return outputLines;
+    }
+
+    @NotNull
+    private List<String> processAsService(@NotNull String toolPath, @Nullable String configPath, @NotNull String aElement) throws IOException, InterruptedException {
+        boolean configPathDiffers = (configPath == null && _configPath != null) || (configPath != null && !configPath.equals(_configPath));
+
+        if (!toolPath.equals(_toolPath) || configPathDiffers || process == null || stdOut == null) {
             _toolPath = toolPath;
-            _configFilePath = configFilePath;
+            _configPath = configPath;
 
             restartSwiftLint();
         }
 
-        try {
-            sendFileToSwiftLint(aElement);
-        } catch (IOException aE) {
-            restartSwiftLint();
-            sendFileToSwiftLint(aElement);
+        return sendFileAndProcessSwiftLintOutput(aElement, true);
+    }
 
-            aE.printStackTrace();
-        }
-
+    @NotNull
+    private List<String> sendFileAndProcessSwiftLintOutput(String aFileText, boolean serviceMode) throws IOException, InterruptedException {
         final List<String> outputLines = new ArrayList<>();
         final List<String> errorLines = new ArrayList<>();
+
+        stdOut.write(aFileText);
+
+        if (serviceMode) {
+            stdOut.write(TERMINATOR + "\n");
+            stdOut.flush();
+        }
+
         Thread outputThread = new Thread(() -> {
             BufferedReader inputStream = new BufferedReader(new InputStreamReader(process.getInputStream()));
             BufferedReader errorStream = new BufferedReader(new InputStreamReader(process.getErrorStream()));
@@ -109,26 +204,33 @@ class SwiftLint {
                 Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + ex.getMessage(), NotificationType.INFORMATION));
                 ex.printStackTrace();
 
-                try {
-                    closeProcess();
-                } catch (IOException aE) {
-                    aE.printStackTrace();
+                if (serviceMode) {
+                    try {
+                        closeProcess();
+                    } catch (IOException aE) {
+                        aE.printStackTrace();
+                    }
                 }
             }
         });
         outputThread.start();
 
+        if (!serviceMode) {
+            stdOut.flush();
+            stdOut.close();
+        }
+
         try {
             outputThread.join(1000);
-        } catch (InterruptedException ex) {
-            Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + ex.getMessage(), NotificationType.INFORMATION));
-            ex.printStackTrace();
-
-            try {
+            if (outputThread.isAlive()) {
                 closeProcess();
-            } catch (IOException aE) {
-                aE.printStackTrace();
             }
+        } catch (InterruptedException e) {
+            if (serviceMode) {
+                closeProcess();
+            }
+
+            throw e;
         }
 
         for (String errorLine : errorLines) {
@@ -136,7 +238,7 @@ class SwiftLint {
                 Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "SwiftLint error: " + errorLine, NotificationType.INFORMATION));
             }
         }
-
+        
         return outputLines;
     }
 }
