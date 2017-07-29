@@ -23,6 +23,13 @@ class SwiftLint {
     private Process process;
     private BufferedWriter stdOut;
 
+    @Override
+    protected void finalize() throws Throwable {
+        closeProcess();
+        
+        super.finalize();
+    }                 
+
     private void closeProcess() throws IOException {
         if (stdOut != null) {
             stdOut.close();
@@ -37,12 +44,11 @@ class SwiftLint {
     }
 
     private void restartSwiftLint() throws IOException {
-        String frameworkSearchPath = _toolPath.substring(0, _toolPath.lastIndexOf("/"));
-
         closeProcess();
 
         String[] parameters = processParameters();
 
+        String frameworkSearchPath = _toolPath.substring(0, _toolPath.lastIndexOf("/"));
         String[] environment = new String[]{
                 "DYLD_FRAMEWORK_PATH", frameworkSearchPath
         };
@@ -154,7 +160,7 @@ class SwiftLint {
     private List<String> processAsService(@NotNull String toolPath, @Nullable String configPath, @NotNull String aElement) throws IOException, InterruptedException {
         boolean configPathDiffers = (configPath == null && _configPath != null) || (configPath != null && !configPath.equals(_configPath));
 
-        if (!toolPath.equals(_toolPath) || configPathDiffers || process == null || stdOut == null) {
+        if (!toolPath.equals(_toolPath) || configPathDiffers || process == null || !process.isAlive() || stdOut == null) {
             _toolPath = toolPath;
             _configPath = configPath;
 
@@ -200,9 +206,10 @@ class SwiftLint {
                         errorLines.add(line);
                     }
                 }
-            } catch (IOException ex) {
-                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + ex.getMessage(), NotificationType.INFORMATION));
-                ex.printStackTrace();
+            } catch (IOException e) {
+                if (!e.getMessage().contains("closed")) {
+                    Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + e.getMessage(), NotificationType.INFORMATION));
+                }
 
                 if (serviceMode) {
                     try {
@@ -211,6 +218,8 @@ class SwiftLint {
                         aE.printStackTrace();
                     }
                 }
+
+                e.printStackTrace();
             }
         });
         outputThread.start();
