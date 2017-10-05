@@ -16,7 +16,7 @@ To configure SwiftLint, create ".swiftlint.yml" file in the project root. See <h
         <![CDATA[
         <p>1.9</p>
         <ul>
-          <li>Text parsing instead of file parsing (should eliminate occasional freezes).</li>
+          <li>Update of SwiftLint log parsing.</li>
           <li>Improvements in highlighting of several warnings.</li>
         </ul>
         <p>1.8</p>
