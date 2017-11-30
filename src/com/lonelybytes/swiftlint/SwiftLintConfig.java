@@ -12,16 +12,15 @@ import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-class SwiftLintConfig {
+public class SwiftLintConfig {
     private String _projectPath = null;
     private String _configPath = null;
     private long _configPathLastUpdateTime = 0;
 
-    private Map<String, Object> _yamlData = null;
     private List<String> _disabledDirectories = new ArrayList<>();
     
     @SuppressWarnings("unchecked")
-    SwiftLintConfig(Project aProject, String aConfigPath) {
+    public SwiftLintConfig(Project aProject, String aConfigPath) {
         update(aProject, aConfigPath);
     }
 
@@ -33,7 +32,7 @@ class SwiftLintConfig {
         return _disabledDirectories.stream().anyMatch(aS -> aFilePath.contains("/" + aS + "/"));
     }
 
-    void update(Project aProject, String aConfigPath) {
+    public void update(Project aProject, String aConfigPath) {
         if (_projectPath != null && Objects.equals(_projectPath, aProject.getBasePath()) && Objects.equals(_configPath, aConfigPath)) {
             File configFile = new File(_configPath);
             if (_configPath != null && configFile.exists()) {
@@ -61,22 +60,13 @@ class SwiftLintConfig {
         }
     }
 
-    private void loadYamlIfNeeded() throws FileNotFoundException {
-        if (_yamlData != null) {
-            return;
-        }
-
+    private void loadDisabledDirectories() throws FileNotFoundException {
         Yaml yaml = new Yaml();
 
         //noinspection unchecked
-        _yamlData = (Map<String, Object>) yaml.load(new BufferedInputStream(new FileInputStream(new File(_configPath))));
-    }
-
-    private void loadDisabledDirectories() throws FileNotFoundException {
-        loadYamlIfNeeded();
-
+        Map<String, Object> yamlData = (Map<String, Object>) yaml.load(new BufferedInputStream(new FileInputStream(new File(_configPath))));
         //noinspection unchecked
-        _disabledDirectories = ((List<String>) _yamlData.get("excluded"));
+        _disabledDirectories = ((List<String>) yamlData.get("excluded"));
     }
 
     private static class DepthedFile {
@@ -90,7 +80,7 @@ class SwiftLintConfig {
     }
 
     @Nullable
-    static String swiftLintConfigPath(Project aProject, int aDepthToLookAt) {
+    public static String swiftLintConfigPath(Project aProject, int aDepthToLookAt) {
         if (aProject.getBaseDir().findChild(".swiftlint.yml") != null) {
             return aProject.getBaseDir().getCanonicalPath() + "/.swiftlint.yml";
         }

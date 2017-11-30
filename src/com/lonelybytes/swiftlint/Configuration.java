@@ -21,8 +21,8 @@ import javax.swing.event.DocumentListener;
 import java.io.File;
 
 public class Configuration implements Configurable {
-    static final String KEY_SWIFTLINT = "SwiftLint";
-    static final String DEFAULT_SWIFTLINT_PATH = "/usr/local/bin/swiftlint";
+    public static final String KEY_SWIFTLINT = "SwiftLint";
+    public static final String DEFAULT_SWIFTLINT_PATH = "/usr/local/bin/swiftlint";
 
     private boolean modified = false;
 

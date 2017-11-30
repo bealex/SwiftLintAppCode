@@ -47,10 +47,12 @@ To configure SwiftLint, create ".swiftlint.yml" file in the project root. See <h
     <depends>com.intellij.modules.appcode</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <!--<vfs.local.pluggableFileWatcher implementation="com.lonelybytes.swiftlint.SwiftLintFileWatcher"/>-->
-        <inspectionToolProvider implementation="com.lonelybytes.swiftlint.InspectionsProvider"/>
+        <globalInspection implementationClass="com.lonelybytes.swiftlint.SwiftLintInspection"
+                          displayName="SwiftLint"
+                          groupName="Swift"/>
         <applicationConfigurable instance="com.lonelybytes.swiftlint.Configuration"
                                  displayName="SwiftLint"
                                  groupId="tools"/>
+        <externalAnnotator language="Swift" implementationClass="com.lonelybytes.swiftlint.annotator.SwiftLintHighlightingAnnotator"/>
     </extensions>
 </idea-plugin>

@@ -14,7 +14,7 @@ excluded:
   - Carthage
   - Pods
   - ThirdParty
-  - SwiftLintTests/Disabled
+  - Disabled
 
 force_cast: error
 force_try: error

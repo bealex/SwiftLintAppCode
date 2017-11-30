@@ -3,18 +3,17 @@ package com.lonelybytes.swiftlint;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
-import com.intellij.openapi.editor.Document;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-class SwiftLint {
+public class SwiftLint {
     private String _toolPath;
     private String _configPath;
 
@@ -41,29 +40,25 @@ class SwiftLint {
         return parameters;
     }
 
-    List<String> executeSwiftLint(@NotNull final String toolPath, @NotNull final String aAction, @NotNull SwiftLintConfig aConfig, @NotNull final PsiElement aElement, Document aDocument) throws IOException, InterruptedException {
-        if (aAction.equals("autocorrect") && aElement instanceof PsiFile) {
-            processAutocorrect(toolPath, aConfig.getConfigPath(), ((PsiFile) aElement));
+    public List<String> executeSwiftLint(@NotNull final String toolPath, @NotNull final String aAction, @NotNull SwiftLintConfig aConfig,
+                                         @NotNull final String aFilePath) throws IOException, InterruptedException {
+        if (aAction.equals("autocorrect")) {
+            processAutocorrect(toolPath, aConfig.getConfigPath(), aFilePath);
         } else {
-            String filePath = aElement.getContainingFile().getVirtualFile().getCanonicalPath();
-            if (!aConfig.isDisabled(filePath)) {
-                if (filePath != null) {
-                    return processAsApp(toolPath, aAction, aConfig.getConfigPath(), filePath);
-                } else {
-                    throw new IOException("Can't find file: " + aElement.getContainingFile().getVirtualFile());
-                }
+            if (!aConfig.isDisabled(aFilePath)) {
+                return processAsApp(toolPath, aAction, aConfig.getConfigPath(), aFilePath);
             }
         }
 
         return Collections.emptyList();
     }
 
-    private void processAutocorrect(String aToolPath, String aConfigPath, PsiFile aFile) throws IOException, InterruptedException {
+    private void processAutocorrect(String aToolPath, String aConfigPath, String aFilePath) throws IOException, InterruptedException {
         String[] parameters = new String[]{
                 aToolPath, "autocorrect",
                 "--no-cache",
                 "--config", aConfigPath,
-                "--path", aFile.getVirtualFile().getCanonicalPath()
+                "--path", aFilePath
         };
 
         Process process = Runtime.getRuntime().exec(parameters);
