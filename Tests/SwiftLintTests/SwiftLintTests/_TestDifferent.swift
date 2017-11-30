@@ -1,9 +1,19 @@
-class _TestDifferent {
-
-}
-
+import Foundation
 
 class TestDifferent {
+    // MARK: - Notifications
+
+    override class func tableViewStyle(for decoder: NSCoder) -> Int {
+        return 2
+    }
+
+    /**
+        Registers notifications for the application.
+        - parameter application: application instance
+     */
+    func registerNotifications(application: String) {
+    }
+
     func legacy() {
         var b = NSRange(location: 10, length: 1)
     }
@@ -13,13 +23,16 @@ class TestDifferent {
             - returns: something
      */
     func documentOk() -> String {
-        var myVar = nil
+        var myVar: String? = nil
         var anotherVar = myVar ?? nil
+
+        return ""
     }
 
     /**
      */
     func documentBad() -> String {
+        return ""
     }
 
     func statements() {
@@ -42,4 +55,8 @@ class TestDifferent {
 
         try! nesting()
     }
+}
+
+class _TestDifferent {
+
 }
