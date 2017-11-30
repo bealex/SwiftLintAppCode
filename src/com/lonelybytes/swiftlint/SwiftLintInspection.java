@@ -28,10 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR;
 import static com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR_OR_WARNING;
@@ -68,7 +65,13 @@ public class SwiftLintInspection extends LocalInspectionTool {
     static State STATE = new State();
 
     private static final String QUICK_FIX_NAME = "Autocorrect";
-    private static final SwiftLint swiftLint = new SwiftLint();
+    
+    private static SwiftLintConfig _swiftLintConfig = null;
+    private static final SwiftLint SWIFT_LINT = new SwiftLint();
+
+    private static final long THROTTLE_DELAY_MILLISECONDS = 1000;
+    private static Map<String, Boolean> _alreadyExecuting = new HashMap<>();
+    private static Map<String, Long> _lastRequestedTimes = new HashMap<>();
 
     @Nls
     @NotNull
@@ -109,21 +112,56 @@ public class SwiftLintInspection extends LocalInspectionTool {
 
     @Override
     public boolean runForWholeFile() {
-        return true;
+        return false;
     }
 
     @Nullable
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
-        return getProblemDescriptors(file, manager);
+        Document document = FileDocumentManager.getInstance().getDocument(file.getVirtualFile());
+        if (document == null || document.getLineCount() == 0 || !shouldCheck(file)) {
+            return null;
+        }
+
+        String filePath = file.getVirtualFile().getCanonicalPath();
+
+        _lastRequestedTimes.put(filePath, System.currentTimeMillis());
+
+        Boolean alreadyExecutingState = _alreadyExecuting.get(filePath);
+        if (alreadyExecutingState == null) {
+            alreadyExecutingState = false;
+        }
+
+        if (alreadyExecutingState) {
+            System.out.println("Already started");
+            return null;
+        }
+
+        System.out.println("Began");
+        _alreadyExecuting.put(filePath, true);
+
+        try {
+            return getProblemDescriptors(file, manager, document, filePath);
+        } catch (InterruptedException aE) {
+            aE.printStackTrace();
+        } finally {
+            System.out.println("Ended");
+            _alreadyExecuting.put(filePath, false);
+        }
+
+        return null;
     }
 
     @Nullable
-    private ProblemDescriptor[] getProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager) {
-        Document document = FileDocumentManager.getInstance().getDocument(file.getVirtualFile());
-        if (document == null || document.getLineCount() == 0 || !shouldCheck(file, document)) {
-            return null;
+    private ProblemDescriptor[] getProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, Document aDocument, String aFilePath) throws InterruptedException {
+        long inspectionStartTime = _lastRequestedTimes.get(aFilePath) + THROTTLE_DELAY_MILLISECONDS;
+        while (System.currentTimeMillis() < inspectionStartTime) {
+            Thread.sleep(100);
+            inspectionStartTime = _lastRequestedTimes.get(aFilePath) + THROTTLE_DELAY_MILLISECONDS;
+            System.out.println("  Waiting");
         }
+
+        System.out.println("  Started");
 
         if (STATE == null) {
             STATE = new State();
@@ -139,22 +177,26 @@ public class SwiftLintInspection extends LocalInspectionTool {
             return null;
         }
 
+        if (_swiftLintConfig == null) {
+            _swiftLintConfig = new SwiftLintConfig(file.getProject(), swiftLintConfigPath);
+        } else {
+            _swiftLintConfig.update(file.getProject(), swiftLintConfigPath);
+        }
+
         String toolPath = STATE.getAppPath();
 
         List<ProblemDescriptor> descriptors = new ArrayList<>();
 
         try {
-            List<String> lintedErrors = swiftLint.executeSwiftLint(toolPath, "lint", swiftLintConfigPath, file, document);
-
-//            System.out.println("\n" + lintedErrors + "\n");
+            List<String> lintedErrors = SWIFT_LINT.executeSwiftLint(toolPath, "lint", _swiftLintConfig, file, aDocument);
 
             if (lintedErrors.isEmpty()) {
                 return descriptors.toArray(new ProblemDescriptor[descriptors.size()]);
             }
 
             processLintErrors(
-                file, manager, document,
-                toolPath, swiftLintConfigPath,
+                file, manager, aDocument,
+                toolPath, _swiftLintConfig,
                 descriptors, lintedErrors
             );
         } catch (ProcessCanceledException ex) {
@@ -174,13 +216,15 @@ public class SwiftLintInspection extends LocalInspectionTool {
     }
 
     private void processLintErrors(@NotNull PsiFile file, @NotNull InspectionManager manager, Document aDocument,
-                                   String aToolPath, String aConfigPath,
+                                   String aToolPath, SwiftLintConfig aConfig,
                                    List<ProblemDescriptor> aDescriptors,
                                    List<String> aLintedErrors) {
         // file,line,character,severity,type,reason,rule_id,
         // ___ ,10,  25,       Error,   Force Cast,Force casts should be avoided.,force_cast
 
         for (String line : aLintedErrors) {
+//            System.out.println("--> " + line);
+
             String[] lineParts = line.split("\\s*\\,\\s*");
             if (lineParts.length == 0 || !line.contains(",") || line.trim().isEmpty()) {
                 continue;
@@ -194,20 +238,20 @@ public class SwiftLintInspection extends LocalInspectionTool {
                 String[] parts = Arrays.copyOfRange(lineParts, 0, 7);
                 lineParts = Arrays.copyOfRange(lineParts, 7, lineParts.length);
 
-                processErrorLine(file, manager, aDocument, aToolPath, aConfigPath, aDescriptors, parts);
+                processErrorLine(file, manager, aDocument, aToolPath, aConfig, aDescriptors, parts);
             }
         }
     }
 
     private void processErrorLine(@NotNull PsiFile file, @NotNull InspectionManager manager, Document aDocument,
-                                  String aToolPath, String aConfigPath,
+                                  String aToolPath, SwiftLintConfig aConfig,
                                   List<ProblemDescriptor> aDescriptors,
                                   String[] aParts) {
-        final int fileIndex = 0;
+//        final int fileIndex = 0;
         final int lineIndex = 1;
         final int columnIndex = 2;
         final int severityIndex = 3;
-        final int typeIndex = 4;
+//        final int typeIndex = 4;
         final int messageIndex = 5;
         final int ruleIndex = 6;
 
@@ -267,6 +311,11 @@ public class SwiftLintInspection extends LocalInspectionTool {
                 if (!isErrorNewLinesOnly && weHaveAColumn) {
                     // SwiftLint returns column for the previous non-space token, not the erroneous one. Let's try to correct it.
                     switch (rule) {
+                        case "return_arrow_whitespace": {
+                            PsiElement psiElement = nextElement(file, highlightStartOffset, true);
+                            range = psiElement != null ? psiElement.getTextRange() : range;
+                            break;
+                        }
                         case "unused_closure_parameter": {
                             PsiElement psiElement = file.findElementAt(highlightStartOffset);
                             range = psiElement != null ? psiElement.getTextRange() : range;
@@ -281,7 +330,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
                             break;
                         }
                         case "variable_name":
-                            range = findVarInDefinition(file, highlightStartOffset, rule);
+                            range = findVarInDefinition(file, highlightStartOffset);
                             break;
                         case "type_name": {
                             PsiElement psiElement = file.findElementAt(highlightStartOffset);
@@ -298,8 +347,17 @@ public class SwiftLintInspection extends LocalInspectionTool {
                             break;
                     }
                 } else if (isErrorNewLinesOnly) {
-                    // Let's select all empty lines here, we need to show that something is wrong with them
-                    range = getEmptyLinesAroundIndex(aDocument, highlightStartOffset);
+                    switch (rule) {
+                        case "superfluous_disable_command": {
+                            PsiElement psiElement = file.findElementAt(highlightStartOffset - 1);
+                            range = psiElement != null ? psiElement.getTextRange() : range;
+                            break;
+                        }
+                        default: {
+                            // Let's select all empty lines here, we need to show that something is wrong with them
+                            range = getEmptyLinesAroundIndex(aDocument, highlightStartOffset);
+                        }
+                    }
                 }
             } else {
                 PsiElement psiElement = file.findElementAt(highlightStartOffset);
@@ -356,8 +414,8 @@ public class SwiftLintInspection extends LocalInspectionTool {
                 public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor problemDescriptor) {
                     WriteCommandAction writeCommandAction = new WriteCommandAction(project, file) {
                         @Override
-                        protected void run(@NotNull Result aResult) throws Throwable {
-                            executeSwiftLintQuickFix(aToolPath, aConfigPath, file);
+                        protected void run(@NotNull Result aResult) {
+                            executeSwiftLintQuickFix(aToolPath, aConfig, file);
                         }
                     };
 
@@ -369,11 +427,11 @@ public class SwiftLintInspection extends LocalInspectionTool {
         }
     }
 
-    private void executeSwiftLintQuickFix(String aToolPath, String aConfigPath, @NotNull PsiFile file) {
+    private void executeSwiftLintQuickFix(String aToolPath, SwiftLintConfig aConfig, @NotNull PsiFile file) {
         saveAll();
         ApplicationManager.getApplication().invokeLater(() -> {
             try {
-                swiftLint.executeSwiftLint(aToolPath, "autocorrect", aConfigPath, file, null);
+                SWIFT_LINT.executeSwiftLint(aToolPath, "autocorrect", aConfig, file, null);
                 LocalFileSystem.getInstance().refreshFiles(Collections.singletonList(file.getVirtualFile()));
             } catch (Exception e) {
                 Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "Can't quick-fix.\nException: " + e.getMessage(), NotificationType.ERROR));
@@ -416,10 +474,8 @@ public class SwiftLintInspection extends LocalInspectionTool {
             from += 1;
         }
 
-        if (to > 0) {
-            while (chars.charAt(to - 1) != '\n') {
-                to -= 1;
-            }
+        while (to > 0 && chars.charAt(to - 1) != '\n') {
+            to -= 1;
         }
 
         to = Math.max(from, to);
@@ -440,7 +496,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
                 } else {
                     result = psiElement.getNode().getTextRange();
 
-                    psiElement = nextElement(file, aCharacterIndex);
+                    psiElement = nextElement(file, aCharacterIndex, false);
 
                     if (psiElement != null) {
                         if (psiElement.getContext() != null && psiElement.getContext().getNode().getElementType().toString().equals("OPERATOR_SIGN")) {
@@ -460,7 +516,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
         return result;
     }
 
-    private TextRange findVarInDefinition(@NotNull PsiFile file, int aCharacterIndex, String aErrorType) {
+    private TextRange findVarInDefinition(@NotNull PsiFile file, int aCharacterIndex) {
         TextRange result = null;
 
         PsiElement psiElement;
@@ -492,7 +548,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
         return result;
     }
 
-    private PsiElement nextElement(PsiFile aFile, int aElementIndex) {
+    private PsiElement nextElement(PsiFile aFile, int aElementIndex, boolean isWhitespace) {
         PsiElement nextElement = null;
 
         PsiElement initialElement = aFile.findElementAt(aElementIndex);
@@ -501,7 +557,11 @@ public class SwiftLintInspection extends LocalInspectionTool {
             int index = aElementIndex + initialElement.getTextLength();
             nextElement = aFile.findElementAt(index);
 
-            while (nextElement != null && (nextElement == initialElement || nextElement instanceof PsiWhiteSpace)) {
+            while (nextElement != null && (
+                    nextElement == initialElement ||
+                    (!isWhitespace && nextElement instanceof PsiWhiteSpace) ||
+                    (isWhitespace && !(nextElement instanceof PsiWhiteSpace))
+                  )) {
                 index += nextElement.getTextLength();
                 nextElement = aFile.findElementAt(index);
             }
@@ -532,7 +592,7 @@ public class SwiftLintInspection extends LocalInspectionTool {
         return nextElement;
     }
 
-    private boolean shouldCheck(@NotNull final PsiFile aFile, @NotNull final Document aDocument) {
+    private boolean shouldCheck(@NotNull final PsiFile aFile) {
         boolean isSwift = "swift".equalsIgnoreCase(aFile.getVirtualFile().getExtension());
         boolean isInProject = ProjectFileIndex.SERVICE.getInstance(aFile.getProject()).isInSource(aFile.getVirtualFile());
 

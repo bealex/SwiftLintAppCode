@@ -10,3 +10,4 @@ class TestForceUnwrap {
         var ccc3 = bbb1 as! String
     }
 }
+qwelqkwjerl;kjqwekrjqwek; rqlw erkjqwe;rjqer

@@ -15,94 +15,43 @@ import java.util.Collections;
 import java.util.List;
 
 class SwiftLint {
-    private static final String TERMINATOR = "|||end|||";
-
     private String _toolPath;
     private String _configPath;
 
-    private Process process;
-    private BufferedWriter stdOut;
-
-    @Override
-    protected void finalize() throws Throwable {
-        closeProcess();
-        
-        super.finalize();
-    }                 
-
-    private void closeProcess() throws IOException {
-        if (stdOut != null) {
-            stdOut.close();
-        }
-
-        if (process != null) {
-            process.destroy();
-        }
-
-        stdOut = null;
-        process = null;
-    }
-
-    private void restartSwiftLint() throws IOException {
-        closeProcess();
-
-        String[] parameters = processParameters();
-
-        String frameworkSearchPath = _toolPath.substring(0, _toolPath.lastIndexOf("/"));
-        String[] environment = new String[]{
-                "DYLD_FRAMEWORK_PATH", frameworkSearchPath
-        };
-
-        process = Runtime.getRuntime().exec(parameters, environment, new File(frameworkSearchPath));
-        stdOut = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), "utf-8"));
-    }
-
+    @SuppressWarnings("SameParameterValue")
     @NotNull
-    private String[] processParameters() {
-        return processParameters("lint");
-    }
-
-    @NotNull
-    private String[] processParameters(@NotNull final String aAction) {
+    private String[] processParameters(@NotNull final String aAction, @NotNull final String aFilePath) {
         String[] parameters;
         if (_configPath == null) {
             parameters = new String[]{
                     _toolPath, aAction,
-                    "--use-stdin",
                     "--no-cache",
-                    "--reporter", "csv"
+                    "--reporter", "csv",
+                    "--path", aFilePath
             };
         } else {
             parameters = new String[]{
                     _toolPath, aAction,
-                    "--use-stdin",
                     "--no-cache",
                     "--config", _configPath,
-                    "--reporter", "csv"
+                    "--reporter", "csv",
+                    "--path", aFilePath
             };
         }
         return parameters;
     }
 
-    List<String> executeSwiftLint(@NotNull final String toolPath, @NotNull final String aAction, @Nullable String configPath, @NotNull final PsiElement aElement, Document aDocument) throws IOException, InterruptedException {
+    List<String> executeSwiftLint(@NotNull final String toolPath, @NotNull final String aAction, @NotNull SwiftLintConfig aConfig, @NotNull final PsiElement aElement, Document aDocument) throws IOException, InterruptedException {
         if (aAction.equals("autocorrect") && aElement instanceof PsiFile) {
-            if (toolPath.endsWith("swiftLintService")) {
-                throw new IOException("Autocorrection is unavailable when using swiftLintService");
-            } else {
-                processAutocorrect(toolPath, configPath, ((PsiFile) aElement));
-            }
+            processAutocorrect(toolPath, aConfig.getConfigPath(), ((PsiFile) aElement));
         } else {
-            String fileText = "";
-            if (aDocument != null) {
-                fileText = aDocument.getText();
-            } else {
-                fileText = aElement.getText();
-            }
-
-            if (toolPath.endsWith("swiftlint")) {
-                return processAsApp(toolPath, aAction, configPath, fileText);
-            } else if (toolPath.endsWith("swiftLintService")) {
-                return processAsService(toolPath, configPath, fileText);
+            String filePath = aElement.getContainingFile().getVirtualFile().getCanonicalPath();
+            if (!aConfig.isDisabled(filePath)) {
+                if (filePath != null) {
+                    return processAsApp(toolPath, aAction, aConfig.getConfigPath(), filePath);
+                } else {
+                    throw new IOException("Can't find file: " + aElement.getContainingFile().getVirtualFile());
+                }
             }
         }
 
@@ -117,7 +66,7 @@ class SwiftLint {
                 "--path", aFile.getVirtualFile().getCanonicalPath()
         };
 
-        process = Runtime.getRuntime().exec(parameters);
+        Process process = Runtime.getRuntime().exec(parameters);
         Thread outputThread = new Thread(() -> {
             BufferedReader inputStream = new BufferedReader(new InputStreamReader(process.getInputStream()));
 
@@ -137,70 +86,30 @@ class SwiftLint {
     }
 
     @NotNull
-    private List<String> processAsApp(@NotNull String toolPath, @NotNull final String aAction, @Nullable String configPath, @NotNull String aFileText) throws IOException, InterruptedException {
+    private List<String> processAsApp(@NotNull String toolPath, @NotNull final String aAction, @Nullable String configPath, @NotNull String aFilePath) throws IOException, InterruptedException {
         _configPath = configPath;
         _toolPath = toolPath;
 
-        String[] parameters = processParameters(aAction);
-
-        process = Runtime.getRuntime().exec(parameters);
-        stdOut = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), "utf-8"));
-
-        final List<String> outputLines = sendFileAndProcessSwiftLintOutput(aFileText, false);
-
-        closeProcess();
-
-        stdOut = null;
-        process = null;
-
-        return outputLines;
+        String[] parameters = processParameters(aAction, aFilePath);
+        return processSwiftLintOutput(Runtime.getRuntime().exec(parameters));
     }
 
     @NotNull
-    private List<String> processAsService(@NotNull String toolPath, @Nullable String configPath, @NotNull String aElement) throws IOException, InterruptedException {
-        boolean configPathDiffers = (configPath == null && _configPath != null) || (configPath != null && !configPath.equals(_configPath));
-
-        if (!toolPath.equals(_toolPath) || configPathDiffers || process == null || !process.isAlive() || stdOut == null) {
-            _toolPath = toolPath;
-            _configPath = configPath;
-
-            restartSwiftLint();
-        }
-
-        return sendFileAndProcessSwiftLintOutput(aElement, true);
-    }
-
-    @NotNull
-    private List<String> sendFileAndProcessSwiftLintOutput(String aFileText, boolean serviceMode) throws IOException, InterruptedException {
+    private List<String> processSwiftLintOutput(Process aProcess) throws InterruptedException {
         final List<String> outputLines = new ArrayList<>();
         final List<String> errorLines = new ArrayList<>();
 
-        stdOut.write(aFileText);
-
-        if (serviceMode) {
-            stdOut.write(TERMINATOR + "\n");
-            stdOut.flush();
-        }
-
         Thread outputThread = new Thread(() -> {
-            BufferedReader inputStream = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            BufferedReader errorStream = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            BufferedReader inputStream = new BufferedReader(new InputStreamReader(aProcess.getInputStream()));
+            BufferedReader errorStream = new BufferedReader(new InputStreamReader(aProcess.getErrorStream()));
 
             try {
                 String line;
                 while ((line = inputStream.readLine()) != null) {
-                    if (line.contains(TERMINATOR)) {
-                        break;
-                    }
-
                     outputLines.add(line);
                 }
 
                 while ((line = errorStream.readLine()) != null) {
-                    if (line.contains(TERMINATOR)) {
-                        break;
-                    }
-
                     String testLine = line.toLowerCase();
                     if (testLine.contains("error") || testLine.contains("warning") || testLine.contains("invalid")) {
                         errorLines.add(line);
@@ -211,35 +120,14 @@ class SwiftLint {
                     Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + e.getMessage(), NotificationType.INFORMATION));
                 }
 
-                if (serviceMode) {
-                    try {
-                        closeProcess();
-                    } catch (IOException aE) {
-                        aE.printStackTrace();
-                    }
-                }
-
                 e.printStackTrace();
             }
         });
         outputThread.start();
 
-        if (!serviceMode) {
-            stdOut.flush();
-            stdOut.close();
-        }
-
-        try {
-            outputThread.join(1000);
-            if (outputThread.isAlive()) {
-                closeProcess();
-            }
-        } catch (InterruptedException e) {
-            if (serviceMode) {
-                closeProcess();
-            }
-
-            throw e;
+        outputThread.join(1000);
+        if (outputThread.isAlive()) {
+            Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "SwiftLint takes too long to process file", NotificationType.INFORMATION));
         }
 
         for (String errorLine : errorLines) {
@@ -247,7 +135,7 @@ class SwiftLint {
                 Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "SwiftLint error: " + errorLine, NotificationType.INFORMATION));
             }
         }
-        
+
         return outputLines;
     }
 }

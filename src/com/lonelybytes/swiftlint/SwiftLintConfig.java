@@ -13,166 +13,70 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 class SwiftLintConfig {
-    private Map<String, Boolean> enabledRules = new HashMap<>();
-    private Map<String, Boolean> disabledRules = new HashMap<>();
-
+    private String _projectPath = null;
     private String _configPath = null;
+    private long _configPathLastUpdateTime = 0;
 
-    static final String[][] rules = {
-            {"attributes", "Attributes should be on their own lines in functions and types, but on the same line as variables and imports."},
-            {"closing_brace", "Closing brace with closing parenthesis should not have any whitespaces in the middle."},
-            {"closure_end_indentation", ""},
-            {"closure_parameter_position", ""},
-            {"closure_spacing", ""},
-            {"colon", ""},
-            {"comma", ""},
-            {"conditional_returns_on_newline", ""},
-            {"control_statement", ""},
-            {"custom_rules", ""},
-            {"cyclomatic_complexity", ""},
-            {"dynamic_inline", ""},
-            {"empty_count", ""},
-            {"empty_parameters", ""},
-            {"empty_parentheses_with_trailing_closure", ""},
-            {"explicit_init", ""},
-            {"file_header", ""},
-            {"file_length", ""},
-            {"first_where", ""},
-            {"force_cast", ""},
-            {"force_try", ""},
-            {"force_unwrapping", ""},
-            {"function_body_length", ""},
-            {"function_parameter_count", ""},
-            {"implicit_getter", ""},
-            {"leading_whitespace", ""},
-            {"legacy_cggeometry_functions", ""},
-            {"legacy_constant", ""},
-            {"legacy_constructor", ""},
-            {"legacy_nsgeometry_functions", ""},
-            {"line_length", ""},
-            {"mark", ""},
-            {"missing_docs", ""},
-            {"nesting", ""},
-            {"nimble_operator", ""},
-            {"number_separator", ""},
-            {"opening_brace", ""},
-            {"operator_usage_whitespace", ""},
-            {"operator_whitespace", ""},
-            {"overridden_super_call", ""},
-            {"private_outlet", ""},
-            {"private_unit_test", ""},
-            {"prohibited_super_call", ""},
-            {"redundant_nil_coalescing", ""},
-            {"redundant_string_enum_value", ""},
-            {"return_arrow_whitespace", ""},
-            {"statement_position", ""},
-            {"switch_case_on_newline", ""},
-            {"syntactic_sugar", ""},
-            {"todo", ""},
-            {"trailing_comma", ""},
-            {"trailing_newline", ""},
-            {"trailing_semicolon", ""},
-            {"trailing_whitespace", ""},
-            {"type_body_length", ""},
-            {"type_name", ""},
-            {"unused_closure_parameter", ""},
-            {"unused_enumerated", ""},
-            {"valid_docs", ""},
-            {"valid_ibinspectable", ""},
-            {"variable_name", ""},
-            {"vertical_whitespace", ""},
-            {"void_return", ""},
-            {"weak_delegate", ""},
-    };
-
-    private static List<String> ruleNames = new ArrayList<String>() {{
-        for (String[] rule : rules) {
-            add(rule[0]);
-        }
-    }};
-
-    private static Map<String, String> ruleToDescription = new HashMap<String, String>() {{
-        for (String[] rule : rules) {
-            put(rule[0], rule[1]);
-        }
-    }};
-
-    static enum Severity {
-        Disabled, Warning, Error
+    private Map<String, Object> _yamlData = null;
+    private List<String> _disabledDirectories = new ArrayList<>();
+    
+    @SuppressWarnings("unchecked")
+    SwiftLintConfig(Project aProject, String aConfigPath) {
+        update(aProject, aConfigPath);
     }
 
-    // true for enabled rule, false for disabled
-    private Map<String, Severity> rulesSeverity = new HashMap<>();
+    public String getConfigPath() {
+        return _configPath;
+    }
 
-    @SuppressWarnings("unchecked")
-    SwiftLintConfig(Project aProject) {
-        String swiftLintConfigPath = swiftLintConfigPath(aProject, 6);
-        if (swiftLintConfigPath != null) {
-            try {
-                Yaml yaml = new Yaml();
-                @SuppressWarnings("unchecked")
-                Map<String, Object> config = (Map<String, Object>) yaml.load(new BufferedInputStream(new FileInputStream(new File(swiftLintConfigPath))));
+    boolean isDisabled(String aFilePath) {
+        return _disabledDirectories.stream().anyMatch(aS -> aFilePath.contains("/" + aS + "/"));
+    }
 
-                List<String> disabledRules = (List<String>) config.get("disabled_rules");
-                processDisabledRules(disabledRules);
-                List<String> optInRules = (List<String>) config.get("opt_in_rules");
-                processOptInRules(optInRules);
-
-                for (Map.Entry<String, Object> entry : config.entrySet()) {
-                    if (entry.getValue() instanceof String) {
-                        String value = (String) entry.getValue();
-
-                        if (value.equals("error")) {
-                            setRuleSeverity(entry.getKey(), Severity.Error);
-                        } else if (value.equals("warning")) {
-                            setRuleSeverity(entry.getKey(), Severity.Warning);
-                        }
-                    } else if (entry.getValue() instanceof Map) {
-                        Map<String, Object> values = (Map<String, Object>) entry.getValue();
-                        for (Map.Entry<String, Object> valueEntry : values.entrySet()) {
-                            String ruleName = valueEntry.getKey();
-
-                            if (ruleName.equals("severity")) {
-                                if (valueEntry.getValue().equals("error")) {
-                                    setRuleSeverity(ruleName, Severity.Error);
-                                } else if (valueEntry.getValue().equals("warning")) {
-                                    setRuleSeverity(ruleName, Severity.Warning);
-                                } else if (valueEntry.getValue().equals("disabled")) {
-                                    setRuleSeverity(ruleName, Severity.Disabled);
-                                }
-                            }
-                        }
-                    }
+    void update(Project aProject, String aConfigPath) {
+        if (_projectPath != null && Objects.equals(_projectPath, aProject.getBasePath()) && Objects.equals(_configPath, aConfigPath)) {
+            File configFile = new File(_configPath);
+            if (_configPath != null && configFile.exists()) {
+                if (configFile.lastModified() <= _configPathLastUpdateTime) {
+                    return;
                 }
-            } catch (FileNotFoundException aE) {
-                aE.printStackTrace();
+
+                _configPathLastUpdateTime = configFile.lastModified();
+            } else {
+                return;
             }
         }
-    }
 
-    Severity ruleSeverity(String aRuleName) {
-        Severity result = rulesSeverity.get(aRuleName);
-        return result == null ? Severity.Disabled : result;
-    }
+        _projectPath = aProject.getBasePath();
+        _configPath = aConfigPath;
 
-    private void processOptInRules(List<String> aOptInRules) {
-        for (String rule : aOptInRules) {
-            setRuleSeverity(rule, Severity.Warning);
+        if (_configPath == null) {
+            _configPath = swiftLintConfigPath(aProject, 6);
+        }
+
+        try {
+            loadDisabledDirectories();
+        } catch (FileNotFoundException aE) {
+            aE.printStackTrace();
         }
     }
 
-    private void processDisabledRules(List<String> aDisabledRules) {
-        for (String rule : aDisabledRules) {
-            setRuleSeverity(rule, Severity.Disabled);
+    private void loadYamlIfNeeded() throws FileNotFoundException {
+        if (_yamlData != null) {
+            return;
         }
+
+        Yaml yaml = new Yaml();
+
+        //noinspection unchecked
+        _yamlData = (Map<String, Object>) yaml.load(new BufferedInputStream(new FileInputStream(new File(_configPath))));
     }
 
-    private void setRuleSeverity(String aRuleName, Severity aSeverity) {
-        if (ruleNames.contains(aRuleName)) {
-            rulesSeverity.put(aRuleName, aSeverity);
-        } else {
-            System.err.println("Unknown rule: " + aRuleName);
-        }
+    private void loadDisabledDirectories() throws FileNotFoundException {
+        loadYamlIfNeeded();
+
+        //noinspection unchecked
+        _disabledDirectories = ((List<String>) _yamlData.get("excluded"));
     }
 
     private static class DepthedFile {
@@ -221,5 +125,4 @@ class SwiftLintConfig {
 
         return null;
     }
-
 }
