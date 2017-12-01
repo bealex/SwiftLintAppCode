@@ -1,5 +1,7 @@
 package com.lonelybytes.swiftlint.annotator;
 
+import com.intellij.openapi.editor.Document;
+
 import java.util.List;
 
 public class AnnotatorResult {
@@ -12,21 +14,30 @@ public class AnnotatorResult {
         String severity;
         String message;
 
-        Line(String[] aParts, int aDocumentLineCount) {
+        private boolean positionWasFixed = false;
+
+        Line(String[] aParts) {
             final int lineIndex = 1;
             final int columnIndex = 2;
             final int severityIndex = 3;
             final int messageIndex = 5;
             final int ruleIndex = 6;
 
+            severity = aParts[severityIndex];
+            message = aParts[messageIndex];
+
             rule = aParts[ruleIndex];
 
-            int linePointerFix = rule.equals("mark") ? -1 : -1;
-
-            line = Math.min(aDocumentLineCount + linePointerFix, Integer.parseInt(aParts[lineIndex]) + linePointerFix);
-            line = Math.max(0, line);
-
+            line = Integer.parseInt(aParts[lineIndex]);
             column = aParts[columnIndex].isEmpty() ? -1 : Math.max(0, Integer.parseInt(aParts[columnIndex]));
+        }
+
+        void fixPositionInDocument(Document aDocument) {
+            if (positionWasFixed) {
+                return;
+            }
+
+            line = Math.max(0, Math.min(aDocument.getLineCount() - 1, line - 1));
 
             if (rule.equals("empty_first_line")) {
                 // SwiftLint shows some strange identifier on the previous line
@@ -34,8 +45,7 @@ public class AnnotatorResult {
                 column = -1;
             }
 
-            severity = aParts[severityIndex];
-            message = aParts[messageIndex];
+            positionWasFixed = true;
         }
     }
 
