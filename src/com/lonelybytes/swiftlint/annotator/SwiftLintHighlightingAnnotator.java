@@ -306,29 +306,6 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
                             range = getNextTokenAtIndex(aFile, startOffset, aLine.rule);
                             break;
                         }
-//                        case "switch_case_alignment":
-//                        case "conditional_returns_on_newline":
-//                        case "control_statement":
-//                        case "discarded_notification_center_observer":
-//                        case "discouraged_direct_init":
-//                        case "explicit_enum_raw_value":
-//                        case "explicit_init":
-//                        case "fallthrough":
-//                        case "fatal_error_message":
-//                        case "first_where":
-//                        case "for_where":
-//                        case "generic_type_name":
-//                        case "implicit_getter":
-//                        case "implicit_return":
-//                        case "is_disjoint":
-//                        case "joined_default_parameter":
-//                        case "legacy_cggeometry_functions":
-//                        case "legacy_nsgeometry_functions":
-//                        case "legacy_constant":
-//                        case "legacy_constructor":
-//                        case "multiline_arguments":
-//                        case "multiline_parameters":
-//                        case "nimble_operator":
                         default: {
                             PsiElement psiElement = aFile.findElementAt(startOffset);
                             if (psiElement != null && psiElement.getNode() instanceof PsiWhiteSpace) {
