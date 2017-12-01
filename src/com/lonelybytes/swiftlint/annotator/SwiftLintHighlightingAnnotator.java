@@ -109,7 +109,7 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
 
             if (lintedErrors != null && !lintedErrors.isEmpty()) {
                 for (String line: lintedErrors) {
-                    System.out.println("--> " + line);
+//                    System.out.println("--> " + line);
 
                     String newLine = line.replaceAll("\\\"(.*),(.*)\\\"", "\"$1|||$2\"");
                     while (!newLine.equals(line)) {
@@ -300,36 +300,42 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
                             range = psiElement != null ? psiElement.getTextRange() : range;
                             break;
                         }
-                        case "switch_case_alignment":
-                        case "conditional_returns_on_newline":
-                        case "control_statement":
-                        case "discarded_notification_center_observer":
-                        case "discouraged_direct_init":
-                        case "explicit_enum_raw_value":
-                        case "explicit_init":
-                        case "fallthrough":
-                        case "fatal_error_message":
-                        case "first_where":
-                        case "for_where":
-                        case "generic_type_name":
-                        case "implicit_getter":
-                        case "implicit_return":
-                        case "is_disjoint":
-                        case "joined_default_parameter":
-                        case "legacy_cggeometry_functions":
-                        case "legacy_nsgeometry_functions":
-                        case "legacy_constant":
-                        case "legacy_constructor":
-                        case "multiline_arguments":
-                        case "multiline_parameters":
-                        case "nimble_operator":
-                        case "closure_parameter_position": {
-                            PsiElement psiElement = aFile.findElementAt(startOffset);
-                            range = psiElement != null ? psiElement.getTextRange() : range;
+                        case "force_cast": 
+                        case "operator_whitespace":
+                        case "implicitly_unwrapped_optional": {
+                            range = getNextTokenAtIndex(aFile, startOffset, aLine.rule);
                             break;
                         }
+//                        case "switch_case_alignment":
+//                        case "conditional_returns_on_newline":
+//                        case "control_statement":
+//                        case "discarded_notification_center_observer":
+//                        case "discouraged_direct_init":
+//                        case "explicit_enum_raw_value":
+//                        case "explicit_init":
+//                        case "fallthrough":
+//                        case "fatal_error_message":
+//                        case "first_where":
+//                        case "for_where":
+//                        case "generic_type_name":
+//                        case "implicit_getter":
+//                        case "implicit_return":
+//                        case "is_disjoint":
+//                        case "joined_default_parameter":
+//                        case "legacy_cggeometry_functions":
+//                        case "legacy_nsgeometry_functions":
+//                        case "legacy_constant":
+//                        case "legacy_constructor":
+//                        case "multiline_arguments":
+//                        case "multiline_parameters":
+//                        case "nimble_operator":
                         default: {
-                            range = getNextTokenAtIndex(aFile, startOffset, aLine.rule);
+                            PsiElement psiElement = aFile.findElementAt(startOffset);
+                            if (psiElement != null && psiElement.getNode() instanceof PsiWhiteSpace) {
+                                range = getNextTokenAtIndex(aFile, startOffset, aLine.rule);
+                            } else {
+                                range = psiElement != null ? psiElement.getTextRange() : range;
+                            }
                             break;
                         }
                     }

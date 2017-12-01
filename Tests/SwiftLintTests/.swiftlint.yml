@@ -23,6 +23,7 @@ opt_in_rules:
   - literal_expression_end_indentation
   - multiline_arguments
   - nimble_operator
+  - unused_closure_parameter
 
 excluded:
   - Carthage
