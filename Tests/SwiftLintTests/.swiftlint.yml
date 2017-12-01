@@ -1,5 +1,4 @@
 disabled_rules:
-  - todo
   - type_body_length
 opt_in_rules:
   - empty_count
@@ -24,6 +23,26 @@ opt_in_rules:
   - multiline_arguments
   - nimble_operator
   - unused_closure_parameter
+  - no_extension_access_modifier
+  - no_grouping_extension
+  - number_separator
+  - object_literal
+  - operator_usage_whitespace
+  - overridden_super_call
+  - override_in_extension
+  - pattern_matching_keywords
+  - private_outlet
+  - prohibited_super_call
+  - quick_discouraged_call
+  - quick_discouraged_focused_test
+  - quick_discouraged_pending_test
+  - redundant_nil_coalescing
+  - single_test_class
+  - sorted_first_last
+  - sorted_imports
+  - todo
+  - trailing_closure
+  - unneeded_parentheses_in_closure_argument
 
 excluded:
   - Carthage
@@ -123,12 +142,6 @@ custom_rules:
     message: "There are too many line breaks"
     severity: error
   
-  custom_colon:
-    name: "Custom Colon"
-    regex: '(?<!swiftlint|HH|mm|h|\"H|''H|\sH):([^\-\)\s\\\/\]])'
-    message: "Colons should be next to the identifier when specifying a type."
-    severity: error
-
   sleep:
     name: "Using sleep()"
     regex: ' sleep\(.*\)'

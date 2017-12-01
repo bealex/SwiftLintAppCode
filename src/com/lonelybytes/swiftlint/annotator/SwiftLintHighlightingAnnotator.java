@@ -266,6 +266,11 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
                             range = psiElement != null ? psiElement.getTextRange() : range;
                             break;
                         }
+                        case "redundant_void_return": {
+                            PsiElement psiElement = aFile.findElementAt(startOffset);
+                            range = psiElement != null && psiElement.getNextSibling() != null ? psiElement.getNextSibling().getTextRange() : range;
+                            break;
+                        }
                         case "let_var_whitespace":
                         case "syntactic_sugar": {
                             PsiElement psiElement = aFile.findElementAt(startOffset);
@@ -302,8 +307,27 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
                         }
                         case "force_cast": 
                         case "operator_whitespace":
+                        case "shorthand_operator":
+                        case "single_test_class":
                         case "implicitly_unwrapped_optional": {
                             range = getNextTokenAtIndex(aFile, startOffset, aLine.rule);
+                            break;
+                        }
+                        case "private_unit_test":
+                        case "private_outlet":
+                        case "override_in_extension": {
+                            PsiElement psiElement = prevElement(aFile, startOffset);
+                            range = psiElement != null ? psiElement.getTextRange() : range;
+                            break;
+                        }
+                        case "redundant_optional_initialization": {
+                            range = getNextTokenAtIndex(aFile, getNextTokenAtIndex(aFile, startOffset, aLine.rule).getEndOffset(), aLine.rule);
+                            break;
+                        }
+                        case "trailing_closure": {
+                            range = getNextTokenAtIndex(aFile, getNextTokenAtIndex(aFile, startOffset, aLine.rule).getEndOffset(), aLine.rule);
+                            PsiElement psiElement = aFile.findElementAt(range.getStartOffset());
+                            range = psiElement != null && psiElement.getParent() != null ? psiElement.getParent().getTextRange() : range;
                             break;
                         }
                         default: {
@@ -320,6 +344,15 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
                     switch (aLine.rule) {
                         case "superfluous_disable_command": {
                             PsiElement psiElement = aFile.findElementAt(startOffset - 1);
+                            range = psiElement != null ? psiElement.getTextRange() : range;
+                            break;
+                        }
+                        case "prohibited_super_call":
+                        case "overridden_super_call": {
+                            PsiElement psiElement = aFile.findElementAt(startOffset);
+                            if (psiElement != null) {
+                                psiElement = psiElement.getNode().getTreeParent().getPsi();
+                            }
                             range = psiElement != null ? psiElement.getTextRange() : range;
                             break;
                         }
@@ -351,8 +384,17 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
                         range = psiElement != null ? psiElement.getTextRange() : range;
                         break;
                     }
+                    case "return_arrow_whitespace": {
+                        PsiElement psiElement = aFile.findElementAt(startOffset);
+                        range = psiElement != null ? psiElement.getParent().getTextRange() : range;
+                        break;
+                    }
                     default: {
                         PsiElement psiElement = aFile.findElementAt(startOffset);
+                        if (psiElement != null && "-".equals(psiElement.getText())) {
+                            psiElement = psiElement.getParent().getParent();
+                        }
+
                         if (psiElement != null) {
                             range = psiElement.getTextRange();
 

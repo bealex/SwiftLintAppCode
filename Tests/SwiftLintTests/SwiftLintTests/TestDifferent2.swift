@@ -35,7 +35,14 @@ private class TestDifferent2 {
         return { xxx in xxx + param1 + param2 + param3 }
     }
 
-  // a
+    func bar() {
+        NotificationCenter.default.removeObserver(self)
+    }
 }
+
+open extension String {}
+
+extension Tea: Error {}
+struct Tea {}
 
 public class AAAAA { class BBBB { class CCCC {} } }
