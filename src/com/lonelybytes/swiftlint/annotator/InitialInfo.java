@@ -1,11 +1,11 @@
 package com.lonelybytes.swiftlint.annotator;
 
-class SwiftLintAnnotatorInitialInfo {
+public class InitialInfo {
     String filePath;
     boolean shouldProcess;
-    int documentLineCount;
+    int documentLineCount; // TODO: This value can be wrong :(
 
-    SwiftLintAnnotatorInitialInfo(String aFilePath, boolean aShouldProcess, int aDocumentLineCount) {
+    InitialInfo(String aFilePath, boolean aShouldProcess, int aDocumentLineCount) {
         filePath = aFilePath;
         shouldProcess = aShouldProcess;
         documentLineCount = aDocumentLineCount;

@@ -1,5 +1,6 @@
 package com.lonelybytes.swiftlint.annotator;
 
+import com.intellij.codeInsight.daemon.impl.HighlightInfo;
 import com.intellij.codeInsight.intention.IntentionAction;
 import com.intellij.lang.ASTNode;
 import com.intellij.lang.annotation.Annotation;
@@ -38,11 +39,12 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static com.lonelybytes.swiftlint.SwiftLintInspection.STATE;
 
-public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<SwiftLintAnnotatorInitialInfo, SwiftLintAnnotatorResult> {
+public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInfo, AnnotatorResult> {
     private static SwiftLintConfig swiftLintConfig = null;
     private static final SwiftLint SWIFT_LINT = new SwiftLint();
 
@@ -56,12 +58,13 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<SwiftLintA
 
     @Nullable
     @Override
-    public SwiftLintAnnotatorInitialInfo collectInformation(@NotNull PsiFile aFile) {
-        String filePath = aFile.getVirtualFile().getCanonicalPath();
+    public InitialInfo collectInformation(@NotNull PsiFile aFile) {
+        VirtualFile virtualFile = aFile.getVirtualFile();
+        String filePath = virtualFile.getCanonicalPath();
 
-        Document document = FileDocumentManager.getInstance().getDocument(aFile.getVirtualFile());
+        Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
         if (document == null || document.getLineCount() == 0 || !shouldCheck(aFile)) {
-            return new SwiftLintAnnotatorInitialInfo(filePath, false, 0);
+            return new InitialInfo(filePath, false, 0);
         }
 
         if (STATE == null) {
@@ -84,19 +87,21 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<SwiftLintA
             swiftLintConfig.update(aFile.getProject(), swiftLintConfigPath);
         }
 
-        return new SwiftLintAnnotatorInitialInfo(filePath, true, document.getLineCount());
+        return new InitialInfo(filePath, true, document.getLineCount());
     }
 
     @Nullable
     @Override
-    public SwiftLintAnnotatorResult doAnnotate(SwiftLintAnnotatorInitialInfo collectedInfo) {
+    public AnnotatorResult doAnnotate(InitialInfo collectedInfo) {
         if (!collectedInfo.shouldProcess) {
             return null;
         }
 
+        saveAll();
+                
         String toolPath = STATE.getAppPath();
 
-        List<SwiftLintAnnotatorResult.Line> lines = new ArrayList<>();
+        List<AnnotatorResult.Line> lines = new ArrayList<>();
         try {
             List<String> lintedErrors = null;
             lintedErrors = SWIFT_LINT.executeSwiftLint(toolPath, "lint", swiftLintConfig, collectedInfo.filePath);
@@ -118,7 +123,7 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<SwiftLintA
                         String[] parts = Arrays.copyOfRange(lineParts, 0, 7);
                         lineParts = Arrays.copyOfRange(lineParts, 7, lineParts.length);
 
-                        lines.add(new SwiftLintAnnotatorResult.Line(parts, collectedInfo.documentLineCount));
+                        lines.add(new AnnotatorResult.Line(parts, collectedInfo.documentLineCount));
                     }
                 }
             }
@@ -133,24 +138,69 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<SwiftLintA
             ex.printStackTrace();
         }
 
-        return new SwiftLintAnnotatorResult(lines);
+        return new AnnotatorResult(lines);
+    }
+
+    public List<HighlightInfo> highlightInfos(@NotNull PsiFile aFile, AnnotatorResult aResult) {
+        Document document = FileDocumentManager.getInstance().getDocument(aFile.getVirtualFile());
+        if (document == null) {
+            return Collections.emptyList();
+        }
+
+        List<HighlightInfo> result = new ArrayList<>();
+        for (AnnotatorResult.Line line : aResult.lines) {
+            result.add(processErrorLine(aFile, document, line));
+        }
+
+        return result;
     }
 
     @Override
-    public void apply(@NotNull PsiFile aFile, SwiftLintAnnotatorResult aResult, @NotNull AnnotationHolder aHolder) {
-        Document document = FileDocumentManager.getInstance().getDocument(aFile.getVirtualFile());
-        if (document == null) {
-            return;
-        }
+    public void apply(@NotNull PsiFile aFile, AnnotatorResult aResult, @NotNull AnnotationHolder aHolder) {
+        System.out.println("================================== " + aResult.lines.size());
 
-        for (SwiftLintAnnotatorResult.Line line : aResult.lines) {
-            processErrorLine(aFile, document, line, aHolder);
-        }
+        highlightInfos(aFile, aResult).forEach(aHighlightInfo -> {
+            if (aHighlightInfo != null) {
+                TextRange highlightRange = TextRange.from(aHighlightInfo.startOffset, aHighlightInfo.endOffset - aHighlightInfo.startOffset);
+                Annotation annotation = aHolder.createAnnotation(aHighlightInfo.getSeverity(), highlightRange,
+                        aHighlightInfo.getDescription());
+                annotation.registerFix(new IntentionAction() {
+                    @Nls
+                    @NotNull
+                    @Override
+                    public String getText() {
+                        return QUICK_FIX_NAME;
+                    }
+
+                    @Nls
+                    @NotNull
+                    @Override
+                    public String getFamilyName() {
+                        return "SwiftLint";
+                    }
+
+                    @Override
+                    public boolean isAvailable(@NotNull Project project, Editor editor, PsiFile file) {
+                        return true;
+                    }
+
+                    @Override
+                    public void invoke(@NotNull Project project, Editor editor, PsiFile file) throws IncorrectOperationException {
+                        executeSwiftLintQuickFix(file);
+                    }
+
+                    @Override
+                    public boolean startInWriteAction() {
+                        return false;
+                    }
+                });
+            }
+        });
     }
 
     // Process SwiftLint output
     
-    private void processErrorLine(@NotNull PsiFile aFile, Document aDocument, SwiftLintAnnotatorResult.Line aLine, @NotNull AnnotationHolder aHolder) {
+    private HighlightInfo processErrorLine(@NotNull PsiFile aFile, Document aDocument, AnnotatorResult.Line aLine) {
         int lineNumber = aLine.line;
         int columnNumber = aLine.column;
 
@@ -170,7 +220,7 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<SwiftLintA
         CharSequence chars = aDocument.getImmutableCharSequence();
         if (chars.length() <= startOffset) {
             // This can happen when we browsing a file after it has been edited (some lines removed for example)
-            return;
+            return null;
         }
 
         char startChar = chars.charAt(startOffset);
@@ -270,37 +320,10 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<SwiftLintA
             }
         }
 
-        Annotation annotation = aHolder.createAnnotation(severity, range, aLine.message.trim());
-        annotation.registerFix(new IntentionAction() {
-            @Nls
-            @NotNull
-            @Override
-            public String getText() {
-                return QUICK_FIX_NAME;
-            }
-
-            @Nls
-            @NotNull
-            @Override
-            public String getFamilyName() {
-                return "SwiftLint";
-            }
-
-            @Override
-            public boolean isAvailable(@NotNull Project project, Editor editor, PsiFile file) {
-                return true;
-            }
-
-            @Override
-            public void invoke(@NotNull Project project, Editor editor, PsiFile file) throws IncorrectOperationException {
-                executeSwiftLintQuickFix(file);
-            }
-
-            @Override
-            public boolean startInWriteAction() {
-                return false;
-            }
-        });
+        return HighlightInfo.newHighlightInfo(HighlightInfo.convertSeverity(severity)).
+                range(range).
+                descriptionAndTooltip("SwiftLint: " + aLine.message.trim() + " (" + aLine.rule + ")").
+                create();
     }
 
     private TextRange getEmptyLinesAroundIndex(Document aDocument, int aInitialIndex) {

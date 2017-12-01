@@ -2,7 +2,7 @@ package com.lonelybytes.swiftlint.annotator;
 
 import java.util.List;
 
-public class SwiftLintAnnotatorResult {
+public class AnnotatorResult {
     public static class Line {
         // file,line,character,severity,type,reason,rule_id,
         int line;
@@ -41,7 +41,7 @@ public class SwiftLintAnnotatorResult {
 
     List<Line> lines;
 
-    SwiftLintAnnotatorResult(List<Line> aLines) {
+    AnnotatorResult(List<Line> aLines) {
         lines = aLines;
     }
 }
