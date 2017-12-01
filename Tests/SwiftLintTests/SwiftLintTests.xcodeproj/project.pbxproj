@@ -17,16 +17,20 @@
 		2DBA13BB939006E7193EDBE1 /* TestLongLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA1259A97408A62B797BA9 /* TestLongLine.swift */; };
 		2DBA143C360E464D086A64BB /* TestShortVarName.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA10C25D01AB3B13BAB8EA /* TestShortVarName.swift */; };
 		2DBA14A39681B4917A44DA6C /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA174DA124B62CE45FB2C1 /* main.swift */; };
+		2DBA14B97D4A78EDB6287335 /* TestDifferent2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA17C283733C33875FE097 /* TestDifferent2.swift */; };
 		2DBA14F3336B8D5C5DD1B647 /* TestNoEmptyLinesAfterExpression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA125F0D2D25EDA2EC377E /* TestNoEmptyLinesAfterExpression.swift */; };
 		2DBA15455FAA4FBB3E582D7A /* TestWrongComma.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA1CA1BD99AD6C7CE1520C /* TestWrongComma.swift */; };
 		2DBA15F000F3F3E55B214715 /* TestUnusedParameters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA1BBCAE8A7A3FE1862859 /* TestUnusedParameters.swift */; };
 		2DBA164D56B910525AC22EBF /* TestWrongOperator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA179BBD1889FF80D2AE34 /* TestWrongOperator.swift */; };
 		2DBA16FC6A4940AD6B127E6B /* TestEnum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA1616802A5C70AD83EAE6 /* TestEnum.swift */; };
 		2DBA19A5194A28BEDF443BDB /* TestSemicolons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA1FB8B97503F9A1BCF9D4 /* TestSemicolons.swift */; };
+		2DBA1A04B8C5BE728235EDAE /* TestDifferent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA1068F5649D9C2F0CCF4E /* TestDifferent.swift */; };
 		2DBA1AE67602B6F9FC34EC51 /* TestSyntacticSugar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA18079CADBB38DF614B6E /* TestSyntacticSugar.swift */; };
+		2DBA1B64CC9C51D607F487A8 /* TestForIf.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA1110AAA4612E5799A997 /* TestForIf.swift */; };
 		2DBA1D88A92BF6BA9DA91556 /* TestDisabledDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA169F11173377B964D075 /* TestDisabledDirectory.swift */; };
 		2DBA1E102286E775298544CD /* TestOther.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA1BB331CEEDBA7A730370 /* TestOther.swift */; };
 		2DBA1EE6894A7C3ECF100699 /* TestShortClassName.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA117BBA8E73CCFE4CB205 /* TestShortClassName.swift */; };
+		2DBA1F6B63C242F2132CF1D5 /* TestSwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DBA113A54CAD5458150424F /* TestSwitch.swift */; };
 		FA2105711DAA35D200FCEF64 /* TestShortParameterName.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2105701DAA35D200FCEF64 /* TestShortParameterName.swift */; };
 /* End PBXBuildFile section */
 
@@ -43,7 +47,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2DBA1068F5649D9C2F0CCF4E /* TestDifferent.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestDifferent.swift; sourceTree = "<group>"; };
 		2DBA10C25D01AB3B13BAB8EA /* TestShortVarName.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestShortVarName.swift; sourceTree = "<group>"; };
+		2DBA1110AAA4612E5799A997 /* TestForIf.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestForIf.swift; sourceTree = "<group>"; };
+		2DBA113A54CAD5458150424F /* TestSwitch.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestSwitch.swift; sourceTree = "<group>"; };
 		2DBA117BBA8E73CCFE4CB205 /* TestShortClassName.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestShortClassName.swift; sourceTree = "<group>"; };
 		2DBA1259A97408A62B797BA9 /* TestLongLine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestLongLine.swift; sourceTree = "<group>"; };
 		2DBA125F0D2D25EDA2EC377E /* TestNoEmptyLinesAfterExpression.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestNoEmptyLinesAfterExpression.swift; sourceTree = "<group>"; };
@@ -54,6 +61,7 @@
 		2DBA174DA124B62CE45FB2C1 /* main.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		2DBA179BBD1889FF80D2AE34 /* TestWrongOperator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestWrongOperator.swift; sourceTree = "<group>"; };
 		2DBA17AF163F9B1D1E6E39A9 /* TestWrongColon.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestWrongColon.swift; sourceTree = "<group>"; };
+		2DBA17C283733C33875FE097 /* TestDifferent2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestDifferent2.swift; sourceTree = "<group>"; };
 		2DBA18079CADBB38DF614B6E /* TestSyntacticSugar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestSyntacticSugar.swift; sourceTree = "<group>"; };
 		2DBA19B0214AEF5F2E5176D4 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = file.yml; name = .swiftlint.yml; path = SwiftLintTests/.swiftlint.yml; sourceTree = "<group>"; };
 		2DBA1A66AC3C391A2E7030CF /* TestOpeningBrace.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestOpeningBrace.swift; sourceTree = "<group>"; };
@@ -130,6 +138,10 @@
 				2DBA1B8EAF30037B06985FEF /* TestForceUnwrap.swift */,
 				2DBA1BB331CEEDBA7A730370 /* TestOther.swift */,
 				2DBA1D35CE550F8FBC5BFE2F /* Disabled */,
+				2DBA1068F5649D9C2F0CCF4E /* TestDifferent.swift */,
+				2DBA1110AAA4612E5799A997 /* TestForIf.swift */,
+				2DBA113A54CAD5458150424F /* TestSwitch.swift */,
+				2DBA17C283733C33875FE097 /* TestDifferent2.swift */,
 			);
 			path = SwiftLintTests;
 			sourceTree = "<group>";
@@ -214,6 +226,10 @@
 				2DBA119C5C0EAABBCD32CCCF /* TestForceUnwrap.swift in Sources */,
 				2DBA1E102286E775298544CD /* TestOther.swift in Sources */,
 				2DBA1D88A92BF6BA9DA91556 /* TestDisabledDirectory.swift in Sources */,
+				2DBA1A04B8C5BE728235EDAE /* TestDifferent.swift in Sources */,
+				2DBA1B64CC9C51D607F487A8 /* TestForIf.swift in Sources */,
+				2DBA1F6B63C242F2132CF1D5 /* TestSwitch.swift in Sources */,
+				2DBA14B97D4A78EDB6287335 /* TestDifferent2.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

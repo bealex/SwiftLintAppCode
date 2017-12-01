@@ -1,6 +1,5 @@
 disabled_rules:
   - todo
-  - nesting
   - type_body_length
 opt_in_rules:
   - empty_count
@@ -9,6 +8,21 @@ opt_in_rules:
   - implicit_return
   - force_cast
   - force_unwrapping
+  - contains_over_first_not_nil
+  - conditional_returns_on_newline
+  - explicit_enum_raw_value
+  - explicit_init
+  - explicit_top_level_acl
+  - explicit_type_interface
+  - fatal_error_message
+  - first_where
+  - implicitly_unwrapped_optional
+  - joined_default_parameter
+  - leading_whitespace
+  - let_var_whitespace
+  - literal_expression_end_indentation
+  - multiline_arguments
+  - nimble_operator
 
 excluded:
   - Carthage

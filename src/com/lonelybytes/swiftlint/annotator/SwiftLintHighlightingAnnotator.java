@@ -109,9 +109,15 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
 
             if (lintedErrors != null && !lintedErrors.isEmpty()) {
                 for (String line: lintedErrors) {
-//                    System.out.println("--> " + line);
+                    System.out.println("--> " + line);
 
-                    String[] lineParts = line.split("\\s*\\,\\s*");
+                    String newLine = line.replaceAll("\\\"(.*),(.*)\\\"", "\"$1|||$2\"");
+                    while (!newLine.equals(line)) {
+                        line = newLine;
+                        newLine = line.replaceAll("\\\"(.*),(.*)\\\"", "\"$1|||$2\"");
+                    }
+
+                    String[] lineParts = Arrays.stream(line.split("\\s*\\,\\s*")).map(aS -> aS.replace("|||", ",")).toArray(String[]::new);
                     if (lineParts.length == 0 || !line.contains(",") || line.trim().isEmpty()) {
                         continue;
                     }
@@ -235,6 +241,10 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
 
         HighlightSeverity severity = severityFromSwiftLint(aLine.severity);
 
+        // Rules: https://github.com/realm/SwiftLint/blob/master/Rules.md
+        // 
+        // Finished: https://github.com/realm/SwiftLint/blob/master/Rules.md#no-extension-access-modifier
+
         if (isErrorInLineComment) {
             range = TextRange.create(aDocument.getLineStartOffset(lineNumber), aDocument.getLineEndOffset(lineNumber));
         } else {
@@ -256,6 +266,7 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
                             range = psiElement != null ? psiElement.getTextRange() : range;
                             break;
                         }
+                        case "let_var_whitespace":
                         case "syntactic_sugar": {
                             PsiElement psiElement = aFile.findElementAt(startOffset);
                             if (psiElement != null) {
@@ -281,6 +292,42 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
                             range = findVarInDefinition(aFile, startOffset);
                             break;
                         }
+                        case "dynamic_inline": {
+                            PsiElement psiElement = aFile.findElementAt(startOffset);
+                            if (psiElement != null) {
+                                psiElement = psiElement.getParent();
+                            }
+                            range = psiElement != null ? psiElement.getTextRange() : range;
+                            break;
+                        }
+                        case "switch_case_alignment":
+                        case "conditional_returns_on_newline":
+                        case "control_statement":
+                        case "discarded_notification_center_observer":
+                        case "discouraged_direct_init":
+                        case "explicit_enum_raw_value":
+                        case "explicit_init":
+                        case "fallthrough":
+                        case "fatal_error_message":
+                        case "first_where":
+                        case "for_where":
+                        case "generic_type_name":
+                        case "implicit_getter":
+                        case "implicit_return":
+                        case "is_disjoint":
+                        case "joined_default_parameter":
+                        case "legacy_cggeometry_functions":
+                        case "legacy_nsgeometry_functions":
+                        case "legacy_constant":
+                        case "legacy_constructor":
+                        case "multiline_arguments":
+                        case "multiline_parameters":
+                        case "nimble_operator":
+                        case "closure_parameter_position": {
+                            PsiElement psiElement = aFile.findElementAt(startOffset);
+                            range = psiElement != null ? psiElement.getTextRange() : range;
+                            break;
+                        }
                         default: {
                             range = getNextTokenAtIndex(aFile, startOffset, aLine.rule);
                             break;
@@ -293,6 +340,15 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
                             range = psiElement != null ? psiElement.getTextRange() : range;
                             break;
                         }
+                        case "empty_enum_arguments":
+                        case "empty_parameters": {
+                            PsiElement psiElement = aFile.findElementAt(startOffset);
+                            if (psiElement != null) {
+                                psiElement = psiElement.getNode().getTreeParent().getPsi();
+                            }
+                            range = psiElement != null ? psiElement.getTextRange() : range;
+                            break;
+                        }
                         default: {
                             // Let's select all empty lines here, we need to show that something is wrong with them
                             range = getEmptyLinesAroundIndex(aDocument, startOffset);
@@ -300,12 +356,27 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
                     }
                 }
             } else {
-                PsiElement psiElement = aFile.findElementAt(startOffset);
-                if (psiElement != null) {
-                    range = psiElement.getTextRange();
+                switch (aLine.rule) {
+                    case "empty_enum_arguments":
+                    case "empty_parentheses_with_trailing_closure":
+                    case "let_var_whitespace":
+                    case "empty_parameters": {
+                        PsiElement psiElement = aFile.findElementAt(startOffset);
+                        if (psiElement != null) {
+                            psiElement = psiElement.getNode().getTreeParent().getPsi();
+                        }
+                        range = psiElement != null ? psiElement.getTextRange() : range;
+                        break;
+                    }
+                    default: {
+                        PsiElement psiElement = aFile.findElementAt(startOffset);
+                        if (psiElement != null) {
+                            range = psiElement.getTextRange();
 
-                    if (aLine.rule.equals("colon")) {
-                        range = getNextTokenAtIndex(aFile, startOffset, aLine.rule);
+                            if (aLine.rule.equals("colon")) {
+                                range = getNextTokenAtIndex(aFile, startOffset, aLine.rule);
+                            }
+                        }
                     }
                 }
             }
@@ -331,7 +402,7 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
 
         return HighlightInfo.newHighlightInfo(HighlightInfo.convertSeverity(severity)).
                 range(range).
-                descriptionAndTooltip("SwiftLint: " + aLine.message.trim() + " (" + aLine.rule + ")").
+                descriptionAndTooltip("" + aLine.message.trim() + " (SwiftLint: " + aLine.rule + ")").
                 create();
     }
 
@@ -382,7 +453,7 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
                 if (";".equals(psiElement.getText()) || (aErrorType.equals("variable_name") && psiElement.getNode().getElementType().toString().equals("IDENTIFIER"))) {
                     result = psiElement.getTextRange();
                 } else {
-                    result = psiElement.getNode().getTextRange();
+                    result = psiElement.getTextRange();
 
                     psiElement = nextElement(file, aCharacterIndex, false);
 
@@ -390,7 +461,7 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
                         if (psiElement.getContext() != null && psiElement.getContext().getNode().getElementType().toString().equals("OPERATOR_SIGN")) {
                             result = psiElement.getContext().getNode().getTextRange();
                         } else {
-                            result = psiElement.getNode().getTextRange();
+                            result = psiElement.getTextRange();
                         }
                     }
                 }

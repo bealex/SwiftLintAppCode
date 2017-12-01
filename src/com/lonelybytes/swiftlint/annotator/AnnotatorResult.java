@@ -26,6 +26,13 @@ public class AnnotatorResult {
             severity = aParts[severityIndex];
             message = aParts[messageIndex];
 
+            if (message.startsWith("\"")) {
+                message = message.substring(1);
+            }
+            if (message.endsWith("\"")) {
+                message = message.substring(0, message.length() - 1);
+            }
+
             rule = aParts[ruleIndex];
 
             line = Integer.parseInt(aParts[lineIndex]);
