@@ -2,7 +2,7 @@
 
 This simple plugin allows to highlight errors and warnings from [SwiftLint](https://github.com/realm/SwiftLint) like this:
 
-<img src="img/swiftlint@2x.png" width="677"/>
+<img src="img/swiftlint.png" width="863"/>
 
 ### Installation
 
@@ -15,10 +15,10 @@ You should already have SwiftLint installed somewhere.
  
  3. Set path to SwiftLint binary in the Preferences:
 
-    <img src="img/preferences@2x.png" alt="SwiftLint settings in AppCode Preferences" width="677"/>
+    <img src="img/preferences.png" alt="SwiftLint settings in AppCode Preferences" width="677"/>
 
  4. Check that the corresponding inspection is turned on in AppCode:
  
-     <img src="img/inspections@2x.png" alt="Section Inspections of AppCode Preferences" width="919"/>
+     <img src="img/inspections.png" alt="Section Inspections of AppCode Preferences" width="919"/>
 
 You are good to go!
