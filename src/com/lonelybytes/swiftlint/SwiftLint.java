@@ -45,7 +45,7 @@ public class SwiftLint {
         if (aAction.equals("autocorrect")) {
             processAutocorrect(toolPath, aConfig.getConfigPath(), aFilePath);
         } else {
-            if (!aConfig.isDisabled(aFilePath)) {
+            if (aConfig.shouldBeLinted(aFilePath)) {
                 return processAsApp(toolPath, aAction, aConfig.getConfigPath(), aFilePath);
             }
         }
@@ -106,7 +106,7 @@ public class SwiftLint {
 
                 while ((line = errorStream.readLine()) != null) {
                     String testLine = line.toLowerCase();
-                    if (testLine.contains("error") || testLine.contains("warning") || testLine.contains("invalid")) {
+                    if (testLine.contains("error:") || testLine.contains("warning:") || testLine.contains("invalid:") || testLine.contains("unrecognized arguments:")) {
                         errorLines.add(line);
                     }
                 }
@@ -122,7 +122,7 @@ public class SwiftLint {
 
         outputThread.join(1000);
         if (outputThread.isAlive()) {
-            Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "SwiftLint takes too long to process file", NotificationType.INFORMATION));
+            Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "SwiftLint takes too long to process file", NotificationType.WARNING));
         }
 
         for (String errorLine : errorLines) {

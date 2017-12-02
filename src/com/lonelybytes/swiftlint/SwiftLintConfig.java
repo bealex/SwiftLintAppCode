@@ -17,8 +17,9 @@ public class SwiftLintConfig {
     private String _configPath = null;
     private long _configPathLastUpdateTime = 0;
 
-    private List<String> _disabledDirectories = new ArrayList<>();
-    
+    private List<String> _excludedDirectories = new ArrayList<>();
+    private List<String> _includedDirectories = new ArrayList<>();
+
     @SuppressWarnings("unchecked")
     public SwiftLintConfig(Project aProject, String aConfigPath) {
         update(aProject, aConfigPath);
@@ -28,8 +29,15 @@ public class SwiftLintConfig {
         return _configPath;
     }
 
-    boolean isDisabled(String aFilePath) {
-        return _disabledDirectories.stream().anyMatch(aS -> aFilePath.contains("/" + aS + "/"));
+    boolean shouldBeLinted(String aFilePath) {
+        boolean result = true;
+        if (_includedDirectories != null && !_includedDirectories.isEmpty()) {
+            result = _includedDirectories.stream().anyMatch(aS -> aFilePath.contains("/" + aS + "/"));
+        }
+        
+        result = result && _excludedDirectories.stream().noneMatch(aS -> aFilePath.contains("/" + aS + "/"));
+
+        return result;
     }
 
     public void update(Project aProject, String aConfigPath) {
@@ -60,13 +68,13 @@ public class SwiftLintConfig {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void loadDisabledDirectories() throws FileNotFoundException {
         Yaml yaml = new Yaml();
 
-        //noinspection unchecked
         Map<String, Object> yamlData = (Map<String, Object>) yaml.load(new BufferedInputStream(new FileInputStream(new File(_configPath))));
-        //noinspection unchecked
-        _disabledDirectories = ((List<String>) yamlData.get("excluded"));
+        _excludedDirectories = ((List<String>) yamlData.get("excluded"));
+        _includedDirectories = ((List<String>) yamlData.get("included"));
     }
 
     private static class DepthedFile {

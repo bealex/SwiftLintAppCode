@@ -242,8 +242,6 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
         HighlightSeverity severity = severityFromSwiftLint(aLine.severity);
 
         // Rules: https://github.com/realm/SwiftLint/blob/master/Rules.md
-        // 
-        // Finished: https://github.com/realm/SwiftLint/blob/master/Rules.md#no-extension-access-modifier
 
         if (isErrorInLineComment) {
             range = TextRange.create(aDocument.getLineStartOffset(lineNumber), aDocument.getLineEndOffset(lineNumber));
