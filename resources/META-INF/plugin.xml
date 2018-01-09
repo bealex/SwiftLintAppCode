@@ -2,7 +2,7 @@
     <id>com.appcodeplugins.swiftlint</id>
 
     <name>SwiftLint</name>
-    <version>1.10.1</version>
+    <version>1.10.2</version>
     <vendor email="alex@lonelybytes.com" url="http://github.com/bealex/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[
@@ -14,6 +14,10 @@ To configure SwiftLint, create ".swiftlint.yml" file in the project root. See <h
 
     <change-notes>
         <![CDATA[
+        <p>1.10.2</p>
+        <ul>
+          <li>Fixed work without config file.</li>
+        </ul>
         <p>1.10</p>
         <ul>
           <li>Coding should be more responsive when plugin is on.</li>
