@@ -43,7 +43,7 @@ public class SwiftLintConfig {
     }
 
     public void update(Project aProject, String aConfigPath) {
-        if (_configPath == null) {
+        if (aConfigPath == null) {
             _excludedDirectories = Collections.emptyList();
             _includedDirectories = Collections.emptyList();
 
