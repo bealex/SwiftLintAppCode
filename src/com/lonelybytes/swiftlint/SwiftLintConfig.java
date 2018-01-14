@@ -43,22 +43,18 @@ public class SwiftLintConfig {
     }
 
     public void update(Project aProject, String aConfigPath) {
-        if (_configPath == null) {
-            _excludedDirectories = Collections.emptyList();
-            _includedDirectories = Collections.emptyList();
-
-            return;
-        }
-
-        if (_projectPath != null && Objects.equals(_projectPath, aProject.getBasePath()) && Objects.equals(_configPath, aConfigPath)) {
+        if (_projectPath != null && Objects.equals(_projectPath, aProject.getBasePath()) && _configPath != null && Objects.equals(_configPath, aConfigPath)) {
             File configFile = new File(_configPath);
-            if (_configPath != null && configFile.exists()) {
+            if (configFile.exists()) {
                 if (configFile.lastModified() <= _configPathLastUpdateTime) {
                     return;
                 }
 
                 _configPathLastUpdateTime = configFile.lastModified();
             } else {
+                _excludedDirectories = Collections.emptyList();
+                _includedDirectories = Collections.emptyList();
+
                 return;
             }
         }
@@ -72,7 +68,7 @@ public class SwiftLintConfig {
 
         try {
             loadDisabledDirectories();
-        } catch (FileNotFoundException aE) {
+        } catch (Throwable aE) {
             _excludedDirectories = Collections.emptyList();
             _includedDirectories = Collections.emptyList();
         }
