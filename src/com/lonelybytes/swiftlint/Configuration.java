@@ -19,6 +19,7 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.io.File;
+import java.io.IOException;
 
 public class Configuration implements Configurable {
     public static final String KEY_SWIFTLINT = "SwiftLint";
@@ -109,7 +110,12 @@ public class Configuration implements Configurable {
         if (appPath == null || appPath.isEmpty()) {
             File swiftLintFilePath = PathEnvironmentVariableUtil.findInPath("swiftlint");
             if (swiftLintFilePath != null) {
-                browser.getTextField().setText(swiftLintFilePath.getAbsolutePath());
+                try {
+                    browser.getTextField().setText(swiftLintFilePath.getCanonicalPath());
+                } catch (IOException aE) {
+                    browser.getTextField().setText(swiftLintFilePath.getAbsolutePath());
+                    aE.printStackTrace();
+                }
             } else {
                 browser.getTextField().setText(DEFAULT_SWIFTLINT_PATH);
             }

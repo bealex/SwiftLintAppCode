@@ -28,28 +28,35 @@ public class SwiftLintInspection extends GlobalSimpleInspectionTool {
 
     @SuppressWarnings("WeakerAccess")
     public static class State {
+        private static final String PREFIX = "com.appcodeplugins.swiftlint";
+        private static final String VERSION_1_7 = "v1_7";
+
+        private static final String QUICK_FIX_ENABLED = PREFIX + "." + VERSION_1_7 + ".quickFixEnabled";
+        private static final String APP_NAME = PREFIX + "." + VERSION_1_7 + ".appName";
+        private static final String DISABLE_WHEN_NO_CONFIG_PRESENT = PREFIX + "." + VERSION_1_7 + ".isDisableWhenNoConfigPresent";
+
         public String getAppPath() {
-            return PropertiesComponent.getInstance().getValue("com.appcodeplugins.swiftlint.v1_7.appName");
+            return PropertiesComponent.getInstance().getValue(APP_NAME);
         }
 
         public void setAppPath(String aAppPath) {
-            PropertiesComponent.getInstance().setValue("com.appcodeplugins.swiftlint.v1_7.appName", aAppPath);
+            PropertiesComponent.getInstance().setValue(APP_NAME, aAppPath);
         }
 
         public boolean isQuickFixEnabled() {
-            return PropertiesComponent.getInstance().getBoolean("com.appcodeplugins.swiftlint.v1_7.quickFixEnabled");
+            return PropertiesComponent.getInstance().getBoolean(QUICK_FIX_ENABLED);
         }
 
         public void setQuickFixEnabled(boolean aQuickFixEnabled) {
-            PropertiesComponent.getInstance().setValue("com.appcodeplugins.swiftlint.v1_7.quickFixEnabled", aQuickFixEnabled);
+            PropertiesComponent.getInstance().setValue(QUICK_FIX_ENABLED, aQuickFixEnabled);
         }
 
         public boolean isDisableWhenNoConfigPresent() {
-            return PropertiesComponent.getInstance().getBoolean("com.appcodeplugins.swiftlint.v1_7.isDisableWhenNoConfigPresent");
+            return PropertiesComponent.getInstance().getBoolean(DISABLE_WHEN_NO_CONFIG_PRESENT);
         }
 
         public void setDisableWhenNoConfigPresent(boolean aDisableWhenNoConfigPresent) {
-            PropertiesComponent.getInstance().setValue("com.appcodeplugins.swiftlint.v1_7.isDisableWhenNoConfigPresent", aDisableWhenNoConfigPresent);
+            PropertiesComponent.getInstance().setValue(DISABLE_WHEN_NO_CONFIG_PRESENT, aDisableWhenNoConfigPresent);
         }
     }
 

@@ -50,7 +50,7 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
     private static final SwiftLint SWIFT_LINT = new SwiftLint();
 
     private static final String SHORT_NAME = "SwiftLint";
-    private static final String QUICK_FIX_NAME = "AutoСorrect";
+    private static final String QUICK_FIX_NAME = "Run swiftlint autocorrect";
 
     @Override
     public String getPairedBatchInspectionShortName() {
@@ -174,36 +174,39 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
                 TextRange highlightRange = TextRange.from(aHighlightInfo.startOffset, aHighlightInfo.endOffset - aHighlightInfo.startOffset);
                 Annotation annotation = aHolder.createAnnotation(aHighlightInfo.getSeverity(), highlightRange,
                         aHighlightInfo.getDescription());
-                annotation.registerFix(new IntentionAction() {
-                    @Nls
-                    @NotNull
-                    @Override
-                    public String getText() {
-                        return QUICK_FIX_NAME;
-                    }
 
-                    @Nls
-                    @NotNull
-                    @Override
-                    public String getFamilyName() {
-                        return "SwiftLint";
-                    }
+                if (SwiftLintInspection.STATE.isQuickFixEnabled()) {
+                    annotation.registerFix(new IntentionAction() {
+                        @Nls
+                        @NotNull
+                        @Override
+                        public String getText() {
+                            return QUICK_FIX_NAME;
+                        }
 
-                    @Override
-                    public boolean isAvailable(@NotNull Project project, Editor editor, PsiFile file) {
-                        return true;
-                    }
+                        @Nls
+                        @NotNull
+                        @Override
+                        public String getFamilyName() {
+                            return "SwiftLint";
+                        }
 
-                    @Override
-                    public void invoke(@NotNull Project project, Editor editor, PsiFile file) throws IncorrectOperationException {
-                        executeSwiftLintQuickFix(file);
-                    }
+                        @Override
+                        public boolean isAvailable(@NotNull Project project, Editor editor, PsiFile file) {
+                            return true;
+                        }
 
-                    @Override
-                    public boolean startInWriteAction() {
-                        return false;
-                    }
-                });
+                        @Override
+                        public void invoke(@NotNull Project project, Editor editor, PsiFile file) throws IncorrectOperationException {
+                            executeSwiftLintQuickFix(file);
+                        }
+
+                        @Override
+                        public boolean startInWriteAction() {
+                            return false;
+                        }
+                    });
+                }
             }
         });
     }
@@ -616,7 +619,6 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
         String name = SWIFT_LINT + " " + QUICK_FIX_NAME;
 
         CommandProcessor commandProcessor = CommandProcessor.getInstance();
-        Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
 
         Runnable action = () -> ApplicationManager.getApplication().runWriteAction(() -> {
             try {
