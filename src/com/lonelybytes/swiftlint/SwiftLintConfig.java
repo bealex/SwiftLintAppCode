@@ -2,6 +2,7 @@ package com.lonelybytes.swiftlint;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import io.netty.util.internal.StringUtil;
 import org.antlr.v4.runtime.misc.Nullable;
 import org.yaml.snakeyaml.Yaml;
 
@@ -20,7 +21,6 @@ public class SwiftLintConfig {
     private List<String> _excludedDirectories = new ArrayList<>();
     private List<String> _includedDirectories = new ArrayList<>();
 
-    @SuppressWarnings("unchecked")
     public SwiftLintConfig(Project aProject, String aConfigPath) {
         update(aProject, aConfigPath);
     }
@@ -78,7 +78,7 @@ public class SwiftLintConfig {
     private void loadDisabledDirectories() throws FileNotFoundException {
         Yaml yaml = new Yaml();
 
-        Map<String, Object> yamlData = (Map<String, Object>) yaml.load(new BufferedInputStream(new FileInputStream(new File(_configPath))));
+        Map<String, Object> yamlData = yaml.load(new BufferedInputStream(new FileInputStream(new File(_configPath))));
         _excludedDirectories = ((List<String>) yamlData.get("excluded"));
         _includedDirectories = ((List<String>) yamlData.get("included"));
     }
@@ -128,5 +128,8 @@ public class SwiftLintConfig {
         }
 
         return null;
+    }
+    public boolean hasConfigPath(){
+        return !StringUtil.isNullOrEmpty(getConfigPath());
     }
 }
