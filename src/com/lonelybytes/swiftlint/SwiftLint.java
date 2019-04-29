@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class SwiftLint {
-
     public List<String> executeSwiftLint(@NotNull final String toolPath, @NotNull final String aAction, @NotNull SwiftLintConfig aConfig, @NotNull final String aFilePath) throws IOException, InterruptedException {
         if (aAction.equals("autocorrect")) {
             processAutocorrect(toolPath, aConfig, aFilePath);

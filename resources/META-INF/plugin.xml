@@ -2,7 +2,7 @@
     <id>com.appcodeplugins.swiftlint</id>
 
     <name>SwiftLint</name>
-    <version>1.10.4</version>
+    <version>1.10.5</version>
     <vendor email="alex@lonelybytes.com" url="http://github.com/bealex/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[
@@ -14,6 +14,10 @@ To configure SwiftLint, create ".swiftlint.yml" file in the project root. See <h
 
     <change-notes>
         <![CDATA[
+        <p>1.10.5</p>
+        <ul>
+          <li>CLion support.</li>
+        </ul>
         <p>1.10.4</p>
         <ul>
           <li>More accurate autocorrect fix description.</li>
@@ -56,9 +60,10 @@ To configure SwiftLint, create ".swiftlint.yml" file in the project root. See <h
       ]]>
     </change-notes>
 
-    <idea-version since-build="162"/>
+    <idea-version since-build="172"/>
 
-    <depends>com.intellij.modules.appcode</depends>
+    <depends>com.intellij.modules.cidr.lang</depends>
+    <depends>com.intellij.modules.swift.lang</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <globalInspection displayName="SwiftLint Inspections" groupName="Swift" implementationClass="com.lonelybytes.swiftlint.SwiftLintInspection"/>

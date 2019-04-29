@@ -26,7 +26,6 @@ public class SwiftLintInspection extends GlobalSimpleInspectionTool {
 
     private static final SwiftLintHighlightingAnnotator ANNOTATOR = new SwiftLintHighlightingAnnotator();
 
-    @SuppressWarnings("WeakerAccess")
     public static class State {
         private static final String PREFIX = "com.appcodeplugins.swiftlint";
         private static final String VERSION_1_7 = "v1_7";
@@ -60,7 +59,6 @@ public class SwiftLintInspection extends GlobalSimpleInspectionTool {
         }
     }
 
-    @SuppressWarnings("WeakerAccess")
     public static State STATE = new State();
 
     @NotNull

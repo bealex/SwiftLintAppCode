@@ -1,6 +1,7 @@
 package com.lonelybytes.swiftlint;
 
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import io.netty.util.internal.StringUtil;
 import org.antlr.v4.runtime.misc.Nullable;
@@ -95,17 +96,20 @@ public class SwiftLintConfig {
 
     @Nullable
     public static String swiftLintConfigPath(Project aProject, int aDepthToLookAt) {
-        if (aProject.getBaseDir().findChild(".swiftlint.yml") != null) {
-            return aProject.getBaseDir().getCanonicalPath() + "/.swiftlint.yml";
+        ProjectRootManager projectRootManager = ProjectRootManager.getInstance(aProject);
+        VirtualFile[] roots = projectRootManager.getContentRoots();
+        for (VirtualFile root : roots) {
+            VirtualFile configFile = root.findChild(".swiftlint.yml");
+            if (configFile != null) {
+                return configFile.getCanonicalPath();
+            }
         }
 
-        List<DepthedFile> filesToLookAt = new LinkedList<>();
-        filesToLookAt.addAll(
-                Arrays.stream(aProject.getBaseDir().getChildren())
-                        .filter(VirtualFile::isDirectory)
-                        .map(aVirtualFile -> new DepthedFile(0, aVirtualFile))
-                        .collect(Collectors.toList())
-        );
+        List<DepthedFile> filesToLookAt = Arrays.stream(roots)
+                .flatMap(aVirtualFile -> Arrays.stream(aVirtualFile.getChildren()))
+                .filter(VirtualFile::isDirectory)
+                .map(aVirtualFile -> new DepthedFile(0, aVirtualFile))
+                .collect(Collectors.toCollection(LinkedList::new));
 
         while (!filesToLookAt.isEmpty()) {
             DepthedFile file = filesToLookAt.get(0);

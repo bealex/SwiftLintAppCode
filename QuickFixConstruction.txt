@@ -1,0 +1,27 @@
+quickFixAvailable() ? new LocalQuickFix() {
+    @Nls
+    @NotNull
+    @Override
+    public String getName() {
+        return Properties.get(KEY_SWIFTLINT_QF_NAME);
+    }
+
+    @Nls
+    @NotNull
+    @Override
+    public String getFamilyName() {
+        return Properties.get(KEY_SWIFTLINT_QF_NAME);
+    }
+
+    @Override
+    public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor problemDescriptor) {
+        try {
+            String output = Utils.executeCommandOnFile(toolPath, Properties.get(KEY_SWIFTLINT_QF_COMMAND), file);
+            //TODO: reload particular file, not clear how
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+
+        }
+    }
+} : null
