@@ -88,7 +88,7 @@ public class Configuration implements Configurable {
     }
 
     @Override
-    public void apply() throws ConfigurationException {
+    public void apply() {
         SwiftLintInspection.State state = SwiftLintInspection.STATE;
         if (state == null) {
             state = new SwiftLintInspection.State();

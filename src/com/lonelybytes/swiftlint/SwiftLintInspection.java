@@ -136,7 +136,10 @@ public class SwiftLintInspection extends GlobalSimpleInspectionTool {
             progress.start();
             try {
                 InitialInfo initialInfo = ANNOTATOR.collectInformation(file);
-                AnnotatorResult annotatorResult = ANNOTATOR.doAnnotate(initialInfo);
+                AnnotatorResult annotatorResult = null;
+                if (initialInfo != null) {
+                    annotatorResult = ANNOTATOR.doAnnotate(initialInfo);
+                }
                 ANNOTATOR.highlightInfos(file, annotatorResult).forEach(aHighlightInfo -> {
                     result.add(Pair.create(file, aHighlightInfo));
                 });

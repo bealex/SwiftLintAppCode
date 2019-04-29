@@ -26,7 +26,7 @@ public class SwiftLintConfig {
         update(aProject, aConfigPath);
     }
 
-    public String getConfigPath() {
+    String getConfigPath() {
         return _configPath;
     }
 
@@ -133,7 +133,8 @@ public class SwiftLintConfig {
 
         return null;
     }
-    public boolean hasConfigPath(){
+
+    boolean hasConfigPath(){
         return !StringUtil.isNullOrEmpty(getConfigPath());
     }
 }
