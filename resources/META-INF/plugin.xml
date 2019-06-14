@@ -11,7 +11,7 @@
     <p>This plugin enables code highlighting of, and auto–correct for, SwiftLint, a tool to enforce Swift style and
     conventions.</p>
     <p>The SwiftLint <pre>reporter</pre> should be configured as <pre>csv</pre> to integrate with this plugin.</p>
-    <p>You can download SwiftLint&emdash;and read its documentation&emdash;on the
+    <p>SwiftLint&emdash;and its documentation&emdash;can be found on the
     <href="https://github.com/realm/SwiftLint#configuration">SwiftLint GitHub project page</a>.</p>
 
     <p>Created by Alexander Babaev, Stanislav Dombrovsky</p>
