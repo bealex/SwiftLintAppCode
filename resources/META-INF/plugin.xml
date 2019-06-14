@@ -8,9 +8,11 @@
     <vendor email="alex@lonelybytes.com" url="http://github.com/bealex/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[
-    <p>This plugin enables code highlighting of, and auto–correct for, SwiftLint, a tool to enforce Swift style and
+    <p>Enables code highlighting of, and auto–correct for, SwiftLint, a tool to enforce Swift style and
     conventions.</p>
     <p>The SwiftLint <pre>reporter</pre> should be configured as <pre>csv</pre> to integrate with this plugin.</p>
+    <p>Documentation for this plugin can be found on the <a href=https://github.com/bealex/SwiftLintAppCode>plugin's
+    GitHub project page</a>.</p>
     <p>SwiftLint&emdash;and its documentation&emdash;can be found on the
     <href="https://github.com/realm/SwiftLint#configuration">SwiftLint GitHub project page</a>.</p>
 
