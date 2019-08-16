@@ -26,6 +26,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.psi.impl.source.tree.LeafPsiElement;
 import com.intellij.util.IncorrectOperationException;
+import com.jetbrains.swift.psi.SwiftFunctionDeclaration;
 import com.jetbrains.swift.psi.SwiftIdentifierPattern;
 import com.jetbrains.swift.psi.SwiftParameter;
 import com.jetbrains.swift.psi.SwiftVariableDeclaration;
@@ -409,6 +410,10 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
             }
         }
 
+        if (range == null) {
+            range = TextRange.create(aDocument.getLineStartOffset(lineNumber), aDocument.getLineEndOffset(lineNumber));
+        }
+
         return HighlightInfo.newHighlightInfo(HighlightInfo.convertSeverity(severity)).
                 range(range).
                 descriptionAndTooltip("" + aLine.message.trim() + " (SwiftLint: " + aLine.rule + ")").
@@ -484,6 +489,7 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
         return result;
     }
 
+    @Nullable
     private TextRange findVarInDefinition(@NotNull PsiFile file, int aCharacterIndex) {
         TextRange result = null;
 
@@ -496,6 +502,7 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
             } else {
                 while (psiElement != null &&
                         !(psiElement instanceof SwiftVariableDeclaration) &&
+                        !(psiElement instanceof SwiftFunctionDeclaration) &&
                         !(psiElement instanceof SwiftParameter)) {
                     psiElement = psiElement.getParent();
                 }
@@ -505,10 +512,18 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
                         SwiftVariableDeclaration variableDeclaration = (SwiftVariableDeclaration) psiElement;
                         SwiftIdentifierPattern identifierPattern = variableDeclaration.getVariables().get(0);
                         result = identifierPattern.getNode().getTextRange();
+                    } else if (psiElement instanceof SwiftFunctionDeclaration) {
+                        SwiftFunctionDeclaration functionDeclaration = (SwiftFunctionDeclaration) psiElement;
+                        PsiElement identifierPattern = functionDeclaration.getNameIdentifier();
+                        result = identifierPattern.getTextRange();
                     } else /*if (psiElement instanceof SwiftParameter)*/ {
                         SwiftParameter variableDeclaration = (SwiftParameter) psiElement;
                         result = variableDeclaration.getNode().getTextRange();
                     }
+                }
+
+                if (result == null) {
+                    result = file.findElementAt(aCharacterIndex).getTextRange();
                 }
             }
         } catch (ProcessCanceledException aE) {

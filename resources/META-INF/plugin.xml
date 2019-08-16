@@ -4,7 +4,7 @@
     <id>com.appcodeplugins.swiftlint</id>
 
     <name>SwiftLint</name>
-    <version>1.10.5</version>
+    <version>1.10.6</version>
     <vendor email="alex@lonelybytes.com" url="http://github.com/bealex/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[
@@ -20,6 +20,10 @@
 
     <change-notes>
         <![CDATA[
+        <p>1.10.6</p>
+        <ul>
+          <li>Minor fixes.</li>
+        </ul>
         <p>1.10.5</p>
         <ul>
           <li>CLion support.</li>
@@ -72,9 +76,9 @@
     <depends>com.intellij.modules.swift.lang</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <globalInspection displayName="SwiftLint Inspections" groupName="Swift" implementationClass="com.lonelybytes.swiftlint.SwiftLintInspection"/>
+        <globalInspection displayName="SwiftLint" groupName="Swift" implementationClass="com.lonelybytes.swiftlint.SwiftLintInspection"/>
         <applicationConfigurable instance="com.lonelybytes.swiftlint.Configuration"
-                                 displayName="SwiftLint Inspections"
+                                 displayName="SwiftLint"
                                  groupId="tools"/>
         <externalAnnotator language="Swift" implementationClass="com.lonelybytes.swiftlint.annotator.SwiftLintHighlightingAnnotator"/>
     </extensions>
