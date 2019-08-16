@@ -10,7 +10,6 @@
     <description><![CDATA[
     <p>Enables code highlighting of, and auto&ndash;correct for, SwiftLint, a tool to enforce Swift style and
     conventions.</p>
-    <p>The SwiftLint <pre>reporter</pre> should be configured as <pre>csv</pre> to integrate with this plugin.</p>
     <p>Documentation for this plugin can be found on the <a href=https://github.com/bealex/SwiftLintAppCode>plugin's
     GitHub project page</a>.</p>
     <p>SwiftLint&mdash;and its documentation&mdash;can be found on the
