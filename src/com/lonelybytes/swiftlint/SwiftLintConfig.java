@@ -3,7 +3,6 @@ package com.lonelybytes.swiftlint;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.VirtualFile;
-import io.netty.util.internal.StringUtil;
 import org.antlr.v4.runtime.misc.Nullable;
 import org.yaml.snakeyaml.Yaml;
 
@@ -15,73 +14,101 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class SwiftLintConfig {
-    private String _projectPath = null;
-    private String _configPath = null;
-    private long _configPathLastUpdateTime = 0;
+    public static final String FILE_NAME = ".swiftlint.yml";
 
-    private List<String> _excludedDirectories = new ArrayList<>();
-    private List<String> _includedDirectories = new ArrayList<>();
+    static class Config {
+        File _file;
+        long _lastUpdateTime = 0;
 
-    public SwiftLintConfig(Project aProject, String aConfigPath) {
-        update(aProject, aConfigPath);
-    }
+        List<String> _excludedDirectories = new ArrayList<>();
+        List<String> _includedDirectories = new ArrayList<>();
 
-    String getConfigPath() {
-        return _configPath;
-    }
-
-    boolean shouldBeLinted(String aFilePath) {
-        boolean result = true;
-        if (_includedDirectories != null && !_includedDirectories.isEmpty()) {
-            result = _includedDirectories.stream().anyMatch(aS -> aFilePath.contains("/" + aS + "/"));
+        Config(String aPath) {
+            _file = new File(aPath);
+            updateIfNeeded();
         }
 
-        if (_excludedDirectories != null && !_excludedDirectories.isEmpty()) {
-            result = result && _excludedDirectories.stream().noneMatch(aS -> aFilePath.contains("/" + aS + "/"));
-        }
-
-        return result;
-    }
-
-    public void update(Project aProject, String aConfigPath) {
-        if (_projectPath != null && Objects.equals(_projectPath, aProject.getBasePath()) && _configPath != null && Objects.equals(_configPath, aConfigPath)) {
-            File configFile = new File(_configPath);
-            if (configFile.exists()) {
-                if (configFile.lastModified() <= _configPathLastUpdateTime) {
-                    return;
+        void updateIfNeeded() {
+            if (_file.lastModified() > _lastUpdateTime) {
+                try {
+                    loadDisabledDirectories();
+                } catch (Throwable aE) {
+                    _excludedDirectories = Collections.emptyList();
+                    _includedDirectories = Collections.emptyList();
                 }
 
-                _configPathLastUpdateTime = configFile.lastModified();
-            } else {
-                _excludedDirectories = Collections.emptyList();
-                _includedDirectories = Collections.emptyList();
-
-                return;
+                _lastUpdateTime = _file.lastModified();
             }
         }
 
-        _projectPath = aProject.getBasePath();
-        _configPath = aConfigPath;
+        @SuppressWarnings("unchecked")
+        private void loadDisabledDirectories() throws FileNotFoundException {
+            Yaml yaml = new Yaml();
 
-        if (_configPath == null) {
-            _configPath = swiftLintConfigPath(aProject, 6);
-        }
-
-        try {
-            loadDisabledDirectories();
-        } catch (Throwable aE) {
-            _excludedDirectories = Collections.emptyList();
-            _includedDirectories = Collections.emptyList();
+            Map<String, Object> yamlData = yaml.load(new BufferedInputStream(new FileInputStream(_file)));
+            _excludedDirectories = ((List<String>) yamlData.get("excluded"));
+            _includedDirectories = ((List<String>) yamlData.get("included"));
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void loadDisabledDirectories() throws FileNotFoundException {
-        Yaml yaml = new Yaml();
+    private final Map<String, Config> _configs = new HashMap<>();
 
-        Map<String, Object> yamlData = yaml.load(new BufferedInputStream(new FileInputStream(new File(_configPath))));
-        _excludedDirectories = ((List<String>) yamlData.get("excluded"));
-        _includedDirectories = ((List<String>) yamlData.get("included"));
+    public SwiftLintConfig(Project aProject, String aConfigPath) {
+        String _projectPath = aProject.getBasePath();
+
+        String path = aConfigPath;
+        if (path == null || !new File(path).exists()) {
+            path = swiftLintConfigPath(aProject, 6);
+        }
+        if (path == null) {
+            return;
+        }
+
+        _configs.put(_projectPath, new Config(path));
+    }
+
+    Config getConfig(String aFilePath) {
+        File directory = new File(aFilePath);
+        if (!directory.isDirectory()) {
+            directory = directory.getParentFile();
+        }
+
+        Config config = _configs.get(directory.getAbsolutePath());
+        while (config == null && directory.getParentFile() != null) {
+            File possibleConfigPath = new File(directory.getAbsolutePath() + "/" + FILE_NAME);
+            if (possibleConfigPath.exists()) {
+                config = new Config(possibleConfigPath.getAbsolutePath());
+                _configs.put(directory.getAbsolutePath(), config);
+                break;
+            }
+
+            directory = directory.getParentFile();
+            config = _configs.get(directory.getAbsolutePath());
+        }
+
+        if (config != null) {
+            config.updateIfNeeded();
+        }
+
+        return config;
+    }
+
+    boolean shouldBeLinted(String aFilePath, boolean isLintedByDefault) {
+        Config config = getConfig(aFilePath);
+        if (config == null) {
+            return isLintedByDefault;
+        }
+
+        boolean result = true;
+        if (config._includedDirectories != null && !config._includedDirectories.isEmpty()) {
+            result = config._includedDirectories.stream().anyMatch(aS -> aFilePath.contains("/" + aS + "/"));
+        }
+
+        if (config._excludedDirectories != null && !config._excludedDirectories.isEmpty()) {
+            result = result && config._excludedDirectories.stream().noneMatch(aS -> aFilePath.contains("/" + aS + "/"));
+        }
+
+        return result;
     }
 
     private static class DepthedFile {
@@ -99,7 +126,7 @@ public class SwiftLintConfig {
         ProjectRootManager projectRootManager = ProjectRootManager.getInstance(aProject);
         VirtualFile[] roots = projectRootManager.getContentRoots();
         for (VirtualFile root : roots) {
-            VirtualFile configFile = root.findChild(".swiftlint.yml");
+            VirtualFile configFile = root.findChild(FILE_NAME);
             if (configFile != null) {
                 return configFile.getCanonicalPath();
             }
@@ -119,8 +146,8 @@ public class SwiftLintConfig {
                 break;
             }
 
-            if (file._file.findChild(".swiftlint.yml") != null) {
-                return file._file + "/.swiftlint.yml";
+            if (file._file.findChild(FILE_NAME) != null) {
+                return file._file + "/" + FILE_NAME;
             } else {
                 filesToLookAt.addAll(
                         Arrays.stream(file._file.getChildren())
@@ -132,9 +159,5 @@ public class SwiftLintConfig {
         }
 
         return null;
-    }
-
-    boolean hasConfigPath(){
-        return !StringUtil.isNullOrEmpty(getConfigPath());
     }
 }

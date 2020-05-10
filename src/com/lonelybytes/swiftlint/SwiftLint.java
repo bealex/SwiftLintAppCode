@@ -17,7 +17,7 @@ public class SwiftLint {
         if (aAction.equals("autocorrect")) {
             processAutocorrect(toolPath, aConfig, aFilePath);
         } else {
-            if (aConfig.shouldBeLinted(aFilePath)) {
+            if (aConfig.shouldBeLinted(aFilePath, true)) {
                 return processAsApp(toolPath, aAction, aConfig, aFilePath);
             }
         }
@@ -30,9 +30,10 @@ public class SwiftLint {
         params.add(aToolPath);
         params.add("autocorrect");
         params.add("--no-cache");
-        if (config.hasConfigPath()) {
+        SwiftLintConfig.Config configForFile = config.getConfig(aFilePath);
+        if (configForFile != null) {
             params.add("--config");
-            params.add(config.getConfigPath());
+            params.add(configForFile._file.getAbsolutePath());
         }
         params.add("--path");
         params.add(aFilePath);
@@ -51,9 +52,10 @@ public class SwiftLint {
         params.add("csv");
         params.add("--path");
         params.add(aFilePath);
-        if (config.hasConfigPath()) {
+        SwiftLintConfig.Config configForFile = config.getConfig(aFilePath);
+        if (configForFile != null) {
             params.add("--config");
-            params.add(config.getConfigPath());
+            params.add(configForFile._file.getAbsolutePath());
         }
         Process process = Runtime.getRuntime().exec(params.toArray(new String[0]));
         process.waitFor();

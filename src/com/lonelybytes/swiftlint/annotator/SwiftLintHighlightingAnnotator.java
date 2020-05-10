@@ -3,10 +3,7 @@ package com.lonelybytes.swiftlint.annotator;
 import com.intellij.codeInsight.daemon.impl.HighlightInfo;
 import com.intellij.codeInsight.intention.IntentionAction;
 import com.intellij.lang.ASTNode;
-import com.intellij.lang.annotation.Annotation;
-import com.intellij.lang.annotation.AnnotationHolder;
-import com.intellij.lang.annotation.ExternalAnnotator;
-import com.intellij.lang.annotation.HighlightSeverity;
+import com.intellij.lang.annotation.*;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
@@ -85,8 +82,6 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
 
         if (swiftLintConfig == null) {
             swiftLintConfig = new SwiftLintConfig(aFile.getProject(), swiftLintConfigPath);
-        } else {
-            swiftLintConfig.update(aFile.getProject(), swiftLintConfigPath);
         }
 
         return new InitialInfo(filePath, true);
@@ -173,41 +168,43 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
         highlightInfos(aFile, aResult).forEach(aHighlightInfo -> {
             if (aHighlightInfo != null) {
                 TextRange highlightRange = TextRange.from(aHighlightInfo.startOffset, aHighlightInfo.endOffset - aHighlightInfo.startOffset);
-                Annotation annotation = aHolder.createAnnotation(aHighlightInfo.getSeverity(), highlightRange,
-                        aHighlightInfo.getDescription());
-
+                AnnotationBuilder annotationBuilder = aHolder
+                        .newAnnotation(aHighlightInfo.getSeverity(), aHighlightInfo.getDescription())
+                        .range(highlightRange);
                 if (SwiftLintInspection.STATE.isQuickFixEnabled()) {
-                    annotation.registerFix(new IntentionAction() {
-                        @Nls
-                        @NotNull
-                        @Override
-                        public String getText() {
-                            return QUICK_FIX_NAME;
-                        }
+                    annotationBuilder = annotationBuilder
+                            .withFix(new IntentionAction() {
+                                @Nls
+                                @NotNull
+                                @Override
+                                public String getText() {
+                                    return QUICK_FIX_NAME;
+                                }
 
-                        @Nls
-                        @NotNull
-                        @Override
-                        public String getFamilyName() {
-                            return "SwiftLint";
-                        }
+                                @Nls
+                                @NotNull
+                                @Override
+                                public String getFamilyName() {
+                                    return "SwiftLint";
+                                }
 
-                        @Override
-                        public boolean isAvailable(@NotNull Project project, Editor editor, PsiFile file) {
-                            return true;
-                        }
+                                @Override
+                                public boolean isAvailable(@NotNull Project project, Editor editor, PsiFile file) {
+                                    return true;
+                                }
 
-                        @Override
-                        public void invoke(@NotNull Project project, Editor editor, PsiFile file) throws IncorrectOperationException {
-                            executeSwiftLintQuickFix(file);
-                        }
+                                @Override
+                                public void invoke(@NotNull Project project, Editor editor, PsiFile file) throws IncorrectOperationException {
+                                    executeSwiftLintQuickFix(file);
+                                }
 
-                        @Override
-                        public boolean startInWriteAction() {
-                            return false;
-                        }
-                    });
+                                @Override
+                                public boolean startInWriteAction() {
+                                    return false;
+                                }
+                            });
                 }
+                annotationBuilder.create();
             }
         });
     }
