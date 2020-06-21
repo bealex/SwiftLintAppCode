@@ -5,6 +5,8 @@ import com.intellij.codeInsight.daemon.impl.DaemonProgressIndicator;
 import com.intellij.codeInsight.daemon.impl.HighlightInfo;
 import com.intellij.codeInspection.*;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ex.ProjectManagerEx;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -33,6 +35,7 @@ public class SwiftLintInspection extends GlobalSimpleInspectionTool {
         private static final String QUICK_FIX_ENABLED = PREFIX + "." + VERSION_1_7 + ".quickFixEnabled";
         private static final String APP_NAME = PREFIX + "." + VERSION_1_7 + ".appName";
         private static final String DISABLE_WHEN_NO_CONFIG_PRESENT = PREFIX + "." + VERSION_1_7 + ".isDisableWhenNoConfigPresent";
+        private static final String LOCAL_APP_NAME = PREFIX + "." + VERSION_1_7 + ".localAppName";
 
         public String getAppPath() {
             return PropertiesComponent.getInstance().getValue(APP_NAME);
@@ -56,6 +59,28 @@ public class SwiftLintInspection extends GlobalSimpleInspectionTool {
 
         public void setDisableWhenNoConfigPresent(boolean aDisableWhenNoConfigPresent) {
             PropertiesComponent.getInstance().setValue(DISABLE_WHEN_NO_CONFIG_PRESENT, aDisableWhenNoConfigPresent);
+        }
+
+        public String getLocalAppPath() {
+            return PropertiesComponent.getInstance(getProject()).getValue(LOCAL_APP_NAME);
+        }
+
+        public void setLocalAppPath(String aAppPath) {
+            PropertiesComponent.getInstance(getProject()).setValue(LOCAL_APP_NAME, aAppPath);
+        }
+
+        public String getLocalOrGlobalAppPath() {
+            String localAppPath = getLocalAppPath();
+            if (localAppPath != null && !localAppPath.isEmpty()) {
+                return localAppPath;
+            }
+            return getAppPath();
+        }
+
+        private Project getProject() {
+            ProjectManagerEx projectManager = ProjectManagerEx.getInstanceEx();
+            Project[] openProjects = projectManager.getOpenProjects();
+            return openProjects.length == 0 ? projectManager.getDefaultProject() : openProjects[0];
         }
     }
 

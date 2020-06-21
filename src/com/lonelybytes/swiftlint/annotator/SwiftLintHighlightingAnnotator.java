@@ -96,7 +96,7 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
 
         saveAll();
                 
-        String toolPath = STATE.getAppPath();
+        String toolPath = STATE.getLocalOrGlobalAppPath();
 
         List<AnnotatorResult.Line> lines = new ArrayList<>();
         try {
@@ -603,7 +603,7 @@ public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInf
     private void executeSwiftLintQuickFix(@NotNull PsiFile file) {
         VirtualFile virtualFile = file.getVirtualFile();
 
-        String toolPath = STATE.getAppPath();
+        String toolPath = STATE.getLocalOrGlobalAppPath();
         String filePath = virtualFile.getCanonicalPath();
         if (filePath == null) {
             return;
