@@ -46,5 +46,6 @@
                                  displayName="SwiftLint"
                                  groupId="tools"/>
         <externalAnnotator language="Swift" implementationClass="com.lonelybytes.swiftlint.annotator.SwiftLintHighlightingAnnotator"/>
+        <completion.contributor language="Swift" implementationClass="com.lonelybytes.swiftlint.completion.SwiftlintCompletionContributor" />
     </extensions>
 </idea-plugin>

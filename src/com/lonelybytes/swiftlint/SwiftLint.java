@@ -25,6 +25,15 @@ public class SwiftLint {
         return Collections.emptyList();
     }
 
+    public List<String> executeSwiftLintRules(@NotNull final String toolPath) throws IOException, InterruptedException {
+        List<String> params = new ArrayList<>();
+        params.add(toolPath);
+        params.add("rules");
+        Process process = Runtime.getRuntime().exec(params.toArray(new String[0]));
+        process.waitFor();
+        return processSwiftLintOutput(process);
+    }
+
     private void processAutocorrect(String aToolPath, SwiftLintConfig config, String aFilePath) throws IOException, InterruptedException {
         List<String> params = new ArrayList<>();
         params.add(aToolPath);
