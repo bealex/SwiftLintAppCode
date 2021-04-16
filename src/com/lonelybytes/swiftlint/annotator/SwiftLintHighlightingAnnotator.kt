@@ -38,13 +38,10 @@ import java.util.function.Consumer
 
 class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, AnnotatorResult?>() {
     override fun collectInformation(aFile: PsiFile): InitialInfo? {
-        val virtualFile: VirtualFile = aFile.virtualFile
-        val filePath: String = virtualFile.canonicalPath ?: return null
-        val document: Document =
-                FileDocumentManager.getInstance().getDocument(virtualFile) ?: return InitialInfo(aFile, filePath, null, false)
-        if (document.lineCount == 0 || !shouldCheck(aFile)) {
-            return InitialInfo(aFile, filePath, document, false)
-        }
+        if (!aFile.isWritable) return null
+        val filePath: String = aFile.virtualFile.canonicalPath ?: return null
+        val document: Document = FileDocumentManager.getInstance().getDocument(aFile.virtualFile) ?: return null
+        if (document.lineCount == 0 || !shouldCheck(aFile)) return null
 
         val swiftLintConfigPath: String? = SwiftLintConfig.swiftLintConfigPath(aFile.project, 5)
         if (SwiftLintInspection.State(aFile.project).isDisableWhenNoConfigPresent && swiftLintConfigPath == null) {

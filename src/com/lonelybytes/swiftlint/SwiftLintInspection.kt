@@ -7,7 +7,6 @@ import com.intellij.codeInspection.*
 import com.intellij.execution.configurations.PathEnvironmentVariableUtil
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ex.ProjectManagerEx
 import com.intellij.openapi.util.Pair
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElementVisitor
@@ -37,11 +36,11 @@ class SwiftLintInspection : GlobalSimpleInspectionTool() {
 
         companion object {
             private const val PREFIX = "com.appcodeplugins.swiftlint"
-            private const val VERSION_1_7 = "v1_7"
+            private const val VERSION = "v1_7"
 
-            private const val LOCAL_APP_NAME = "$PREFIX.$VERSION_1_7.localAppName"
-            private const val QUICK_FIX_ENABLED = "$PREFIX.$VERSION_1_7.quickFixEnabled"
-            private const val DISABLE_WHEN_NO_CONFIG_PRESENT = "$PREFIX.$VERSION_1_7.isDisableWhenNoConfigPresent"
+            private const val LOCAL_APP_NAME = "$PREFIX.$VERSION.localAppName"
+            private const val QUICK_FIX_ENABLED = "$PREFIX.$VERSION.quickFixEnabled"
+            private const val DISABLE_WHEN_NO_CONFIG_PRESENT = "$PREFIX.$VERSION.isDisableWhenNoConfigPresent"
 
             private val foundSwiftLintPath: String
                 get() {

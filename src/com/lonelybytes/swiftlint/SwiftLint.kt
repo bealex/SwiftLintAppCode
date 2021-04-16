@@ -3,9 +3,10 @@ package com.lonelybytes.swiftlint
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
-import java.io.*
+import java.io.BufferedReader
+import java.io.File
 import java.io.IOException
-import java.util.*
+import java.io.InputStreamReader
 
 
 class SwiftLint {

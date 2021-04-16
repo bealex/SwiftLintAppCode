@@ -46,7 +46,7 @@
       ]]>
     </change-notes>
 
-    <idea-version since-build="201.6668.113"/>
+    <idea-version since-build="203"/>
 
     <depends>com.intellij.modules.cidr.lang</depends>
     <depends>com.intellij.modules.swift.lang</depends>

@@ -82,9 +82,9 @@ class SwiftLintConfig(aProject: Project, aConfigPath: String?) {
     companion object {
         const val FILE_NAME = ".swiftlint.yml"
 
-        fun swiftLintConfigPath(aProject: Project?, aDepthToLookAt: Int): String? {
-            val projectRootManager = ProjectRootManager.getInstance(aProject!!)
-            val roots = projectRootManager.contentRoots
+        fun swiftLintConfigPath(aProject: Project, aDepthToLookAt: Int): String? {
+            val projectRootManager = ProjectRootManager.getInstance(aProject)
+            val roots = projectRootManager.contentSourceRoots
             for (root in roots) {
                 val configFile = root.findChild(FILE_NAME)
                 if (configFile != null) {
