@@ -1,163 +1,130 @@
-package com.lonelybytes.swiftlint;
+package com.lonelybytes.swiftlint
 
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ProjectRootManager;
-import com.intellij.openapi.vfs.VirtualFile;
-import org.antlr.v4.runtime.misc.Nullable;
-import org.yaml.snakeyaml.Yaml;
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.openapi.vfs.VirtualFile
+import org.yaml.snakeyaml.Yaml
+import java.io.BufferedInputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileNotFoundException
+import java.util.*
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.util.*;
-import java.util.stream.Collectors;
+class SwiftLintConfig(aProject: Project, aConfigPath: String?) {
+    class Config(aPath: String) {
+        var file: File = File(aPath)
+        var excludedDirectories: List<String> = emptyList()
+        var includedDirectories: List<String> = emptyList()
 
-public class SwiftLintConfig {
-    public static final String FILE_NAME = ".swiftlint.yml";
+        private var _lastUpdateTime: Long = 0
 
-    static class Config {
-        File _file;
-        long _lastUpdateTime = 0;
-
-        List<String> _excludedDirectories = new ArrayList<>();
-        List<String> _includedDirectories = new ArrayList<>();
-
-        Config(String aPath) {
-            _file = new File(aPath);
-            updateIfNeeded();
-        }
-
-        void updateIfNeeded() {
-            if (_file.lastModified() > _lastUpdateTime) {
+        fun updateIfNeeded() {
+            if (file.lastModified() > _lastUpdateTime) {
                 try {
-                    loadDisabledDirectories();
-                } catch (Throwable aE) {
-                    _excludedDirectories = Collections.emptyList();
-                    _includedDirectories = Collections.emptyList();
+                    loadDisabledDirectories()
+                } catch (aE: Throwable) {
+                    excludedDirectories = emptyList()
+                    includedDirectories = emptyList()
                 }
-
-                _lastUpdateTime = _file.lastModified();
+                _lastUpdateTime = file.lastModified()
             }
         }
 
-        @SuppressWarnings("unchecked")
-        private void loadDisabledDirectories() throws FileNotFoundException {
-            Yaml yaml = new Yaml();
+        @Throws(FileNotFoundException::class)
+        private fun loadDisabledDirectories() {
+            val yaml = Yaml()
+            val yamlData = yaml.load<Map<String, Any>>(BufferedInputStream(FileInputStream(file)))
+            excludedDirectories = ((yamlData["excluded"] as List<*>?) ?: emptyList<String>()).map { it.toString() }
+            includedDirectories = ((yamlData["included"] as List<*>?) ?: emptyList<String>()).map { it.toString() }
+        }
 
-            Map<String, Object> yamlData = yaml.load(new BufferedInputStream(new FileInputStream(_file)));
-            _excludedDirectories = ((List<String>) yamlData.get("excluded"));
-            _includedDirectories = ((List<String>) yamlData.get("included"));
+        init {
+            updateIfNeeded()
         }
     }
 
-    private final Map<String, Config> _configs = new HashMap<>();
+    private val _configs: MutableMap<String?, Config> = HashMap()
 
-    public SwiftLintConfig(Project aProject, String aConfigPath) {
-        String _projectPath = aProject.getBasePath();
-
-        String path = aConfigPath;
-        if (path == null || !new File(path).exists()) {
-            path = swiftLintConfigPath(aProject, 6);
+    private fun getConfig(aFilePath: String): Config? {
+        var directory = File(aFilePath)
+        if (!directory.isDirectory) {
+            directory = directory.parentFile
         }
-        if (path == null) {
-            return;
-        }
-
-        _configs.put(_projectPath, new Config(path));
-    }
-
-    Config getConfig(String aFilePath) {
-        File directory = new File(aFilePath);
-        if (!directory.isDirectory()) {
-            directory = directory.getParentFile();
-        }
-
-        Config config = _configs.get(directory.getAbsolutePath());
-        while (config == null && directory.getParentFile() != null) {
-            File possibleConfigPath = new File(directory.getAbsolutePath() + "/" + FILE_NAME);
+        var config = _configs[directory.absolutePath]
+        while (config == null && directory.parentFile != null) {
+            val possibleConfigPath = File(directory.absolutePath + "/" + FILE_NAME)
             if (possibleConfigPath.exists()) {
-                config = new Config(possibleConfigPath.getAbsolutePath());
-                _configs.put(directory.getAbsolutePath(), config);
-                break;
+                config = Config(possibleConfigPath.absolutePath)
+                _configs[directory.absolutePath] = config
+                break
             }
-
-            directory = directory.getParentFile();
-            config = _configs.get(directory.getAbsolutePath());
+            directory = directory.parentFile
+            config = _configs[directory.absolutePath]
         }
-
-        if (config != null) {
-            config.updateIfNeeded();
-        }
-
-        return config;
+        config?.updateIfNeeded()
+        return config
     }
 
-    boolean shouldBeLinted(String aFilePath, boolean isLintedByDefault) {
-        Config config = getConfig(aFilePath);
-        if (config == null) {
-            return isLintedByDefault;
+    fun shouldBeLinted(aFilePath: String, isLintedByDefault: Boolean): Boolean {
+        val config = getConfig(aFilePath) ?: return isLintedByDefault
+        var result = true
+        if (config.includedDirectories.isNotEmpty()) {
+            result = config.includedDirectories.stream().anyMatch { aS: String -> aFilePath.contains("/$aS/") }
         }
-
-        boolean result = true;
-        if (config._includedDirectories != null && !config._includedDirectories.isEmpty()) {
-            result = config._includedDirectories.stream().anyMatch(aS -> aFilePath.contains("/" + aS + "/"));
+        if (config.excludedDirectories.isNotEmpty()) {
+            result = result && config.excludedDirectories.stream().noneMatch { aS: String -> aFilePath.contains("/$aS/") }
         }
-
-        if (config._excludedDirectories != null && !config._excludedDirectories.isEmpty()) {
-            result = result && config._excludedDirectories.stream().noneMatch(aS -> aFilePath.contains("/" + aS + "/"));
-        }
-
-        return result;
+        return result
     }
 
-    private static class DepthedFile {
-        int _depth;
-        VirtualFile _file;
+    private class DepthedFile(var _depth: Int, var _file: VirtualFile)
 
-        DepthedFile(int aDepth, VirtualFile aFile) {
-            _depth = aDepth;
-            _file = aFile;
+    companion object {
+        const val FILE_NAME = ".swiftlint.yml"
+
+        fun swiftLintConfigPath(aProject: Project?, aDepthToLookAt: Int): String? {
+            val projectRootManager = ProjectRootManager.getInstance(aProject!!)
+            val roots = projectRootManager.contentRoots
+            for (root in roots) {
+                val configFile = root.findChild(FILE_NAME)
+                if (configFile != null) {
+                    return configFile.canonicalPath
+                }
+            }
+
+            val filesToLookAt: MutableList<DepthedFile> = roots
+                    .flatMap { it.children.asList() }
+                    .filter { it.isDirectory }
+                    .map { DepthedFile(0, it) }
+                    .toMutableList()
+
+            while (filesToLookAt.isNotEmpty()) {
+                val file = filesToLookAt.removeAt(0)
+                if (file._depth > aDepthToLookAt) { break }
+
+                if (file._file.findChild(FILE_NAME) != null) {
+                    return file._file.toString() + "/" + FILE_NAME
+                } else {
+                    filesToLookAt.addAll(
+                            file._file.children
+                                .filter { it.isDirectory }
+                                .map { DepthedFile(file._depth + 1, it) }
+                    )
+                }
+            }
+
+            return null
         }
     }
 
-    @Nullable
-    public static String swiftLintConfigPath(Project aProject, int aDepthToLookAt) {
-        ProjectRootManager projectRootManager = ProjectRootManager.getInstance(aProject);
-        VirtualFile[] roots = projectRootManager.getContentRoots();
-        for (VirtualFile root : roots) {
-            VirtualFile configFile = root.findChild(FILE_NAME);
-            if (configFile != null) {
-                return configFile.getCanonicalPath();
-            }
+    init {
+        val projectPath = aProject.basePath
+        var path = aConfigPath
+        if (path == null || !File(path).exists()) {
+            path = swiftLintConfigPath(aProject, 6)
         }
-
-        List<DepthedFile> filesToLookAt = Arrays.stream(roots)
-                .flatMap(aVirtualFile -> Arrays.stream(aVirtualFile.getChildren()))
-                .filter(VirtualFile::isDirectory)
-                .map(aVirtualFile -> new DepthedFile(0, aVirtualFile))
-                .collect(Collectors.toCollection(LinkedList::new));
-
-        while (!filesToLookAt.isEmpty()) {
-            DepthedFile file = filesToLookAt.get(0);
-            filesToLookAt.remove(0);
-
-            if (file._depth > aDepthToLookAt) {
-                break;
-            }
-
-            if (file._file.findChild(FILE_NAME) != null) {
-                return file._file + "/" + FILE_NAME;
-            } else {
-                filesToLookAt.addAll(
-                        Arrays.stream(file._file.getChildren())
-                                .filter(VirtualFile::isDirectory)
-                                .map(aVirtualFile -> new DepthedFile(file._depth + 1, aVirtualFile))
-                                .collect(Collectors.toList())
-                );
-            }
+        if (path != null) {
+            _configs[projectPath] = Config(path)
         }
-
-        return null;
     }
 }

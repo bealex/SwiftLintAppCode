@@ -1,101 +1,94 @@
-package com.lonelybytes.swiftlint;
+package com.lonelybytes.swiftlint
 
-import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
-import org.jetbrains.annotations.NotNull;
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
+import java.io.*
+import java.io.IOException
+import java.util.*
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
-public class SwiftLint {
-    public List<String> executeSwiftLint(@NotNull final String toolPath, @NotNull final String aAction, @NotNull SwiftLintConfig aConfig, @NotNull final String aFilePath) throws IOException, InterruptedException {
-        if (aAction.equals("autocorrect")) {
-            processAutocorrect(toolPath, aConfig, aFilePath);
+class SwiftLint {
+    @Throws(IOException::class, InterruptedException::class)
+    fun executeSwiftLint(toolPath: String, aAction: String, aConfig: SwiftLintConfig?, aFilePath: String): List<String> {
+        aConfig ?: return emptyList()
+
+        if (aAction == "autocorrect") {
+            processAutocorrect(toolPath, aFilePath)
         } else {
             if (aConfig.shouldBeLinted(aFilePath, true)) {
-                return processAsApp(toolPath, aAction, aConfig, aFilePath);
+                return processAsApp(toolPath, aAction, aFilePath)
             }
         }
 
-        return Collections.emptyList();
+         return emptyList()
     }
 
-    private void processAutocorrect(String aToolPath, SwiftLintConfig config, String aFilePath) throws IOException, InterruptedException {
-        List<String> params = new ArrayList<>();
-        params.add(aToolPath);
-        params.add("autocorrect");
-        params.add("--no-cache");
-        SwiftLintConfig.Config configForFile = config.getConfig(aFilePath);
-        if (configForFile != null) {
-            params.add("--config");
-            params.add(configForFile._file.getAbsolutePath());
-        }
-        params.add("--path");
-        params.add(aFilePath);
-
-        Process process = Runtime.getRuntime().exec(params.toArray(new String[0]));
-        process.waitFor();
+    @Throws(IOException::class, InterruptedException::class)
+    fun getSwiftLintRulesList(aToolPath: String): List<String> {
+        val params = mutableListOf(
+                aToolPath,
+                "rules"
+        )
+        val process = Runtime.getRuntime().exec(params.toTypedArray())
+        process.waitFor()
+        return processSwiftLintOutput(process)
     }
 
-    @NotNull
-    private List<String> processAsApp(@NotNull String toolPath, @NotNull final String aAction, SwiftLintConfig config, @NotNull String aFilePath) throws IOException, InterruptedException {
-        List<String> params = new ArrayList<>();
-        params.add(toolPath);
-        params.add(aAction);
-        params.add("--no-cache");
-        params.add("--reporter");
-        params.add("csv");
-        params.add("--path");
-        params.add(aFilePath);
-        SwiftLintConfig.Config configForFile = config.getConfig(aFilePath);
-        if (configForFile != null) {
-            params.add("--config");
-            params.add(configForFile._file.getAbsolutePath());
-        }
-        Process process = Runtime.getRuntime().exec(params.toArray(new String[0]));
-        process.waitFor();
-        return processSwiftLintOutput(process);
+    @Throws(IOException::class, InterruptedException::class)
+    private fun processAutocorrect(aToolPath: String, aFilePath: String) {
+        val params = mutableListOf(
+                aToolPath,
+                "autocorrect",
+                "--no-cache",
+                "--path", aFilePath
+        )
+
+        val dir = File(aFilePath.substringBeforeLast("/"))
+        val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), dir)
+        process.waitFor()
     }
 
-    @NotNull
-    private List<String> processSwiftLintOutput(Process aProcess) {
-        final List<String> outputLines = new ArrayList<>();
-        final List<String> errorLines = new ArrayList<>();
+    @Throws(IOException::class, InterruptedException::class)
+    private fun processAsApp(toolPath: String, aAction: String, aFilePath: String): List<String> {
+        val params: MutableList<String> = mutableListOf(
+                toolPath,
+                aAction,
+                "--no-cache",
+                "--reporter", "csv",
+                "--path", aFilePath
+        )
 
-        BufferedReader inputStream = new BufferedReader(new InputStreamReader(aProcess.getInputStream()));
-        BufferedReader errorStream = new BufferedReader(new InputStreamReader(aProcess.getErrorStream()));
+        val dir = File(aFilePath.substringBeforeLast("/"))
+        val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), dir)
+        process.waitFor()
+        return processSwiftLintOutput(process)
+    }
 
+    private fun processSwiftLintOutput(aProcess: Process): List<String> {
+        var outputLines: List<String> = emptyList()
+        var errorLines: List<String> = emptyList()
         try {
-            String line;
-            while ((line = inputStream.readLine()) != null) {
-                outputLines.add(line);
+            outputLines = BufferedReader(InputStreamReader(aProcess.inputStream))
+                    .readLines()
+            errorLines = BufferedReader(InputStreamReader(aProcess.errorStream))
+                    .readLines()
+                    .filter {
+                        val testLine = it.toLowerCase()
+                        testLine.contains("error:") || testLine.contains("warning:") || testLine.contains("invalid:") || testLine.contains("unrecognized arguments:")
+                    }
+        } catch (e: IOException) {
+            if (!e.message!!.contains("closed")) {
+                Notifications.Bus.notify(Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + e.message, NotificationType.INFORMATION))
             }
-
-            while ((line = errorStream.readLine()) != null) {
-                String testLine = line.toLowerCase();
-                if (testLine.contains("error:") || testLine.contains("warning:") || testLine.contains("invalid:") || testLine.contains("unrecognized arguments:")) {
-                    errorLines.add(line);
-                }
-            }
-        } catch (IOException e) {
-            if (!e.getMessage().contains("closed")) {
-                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + e.getMessage(), NotificationType.INFORMATION));
-            }
-
-            e.printStackTrace();
+            e.printStackTrace()
         }
 
-        for (String errorLine : errorLines) {
-            if (!errorLine.trim().isEmpty()) {
-                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "SwiftLint error: " + errorLine, NotificationType.INFORMATION));
+        for (errorLine in errorLines) {
+            if (errorLine.trim { it <= ' ' }.isNotEmpty()) {
+                Notifications.Bus.notify(Notification(Configuration.KEY_SWIFTLINT, "Error", "SwiftLint error: $errorLine", NotificationType.INFORMATION))
             }
         }
-
-        return outputLines;
+        return outputLines
     }
 }

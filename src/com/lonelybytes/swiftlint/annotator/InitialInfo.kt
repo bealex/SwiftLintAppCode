@@ -1,11 +1,6 @@
-package com.lonelybytes.swiftlint.annotator;
+package com.lonelybytes.swiftlint.annotator
 
-public class InitialInfo {
-    String filePath;
-    boolean shouldProcess;
+import com.intellij.openapi.editor.Document
+import com.intellij.psi.PsiFile
 
-    InitialInfo(String aFilePath, boolean aShouldProcess) {
-        filePath = aFilePath;
-        shouldProcess = aShouldProcess;
-    }
-}
+class InitialInfo internal constructor(val file: PsiFile, val path: String, val document: Document?, val shouldProcess: Boolean)

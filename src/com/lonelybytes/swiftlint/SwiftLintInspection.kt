@@ -1,176 +1,137 @@
-package com.lonelybytes.swiftlint;
+package com.lonelybytes.swiftlint
 
-import com.intellij.codeHighlighting.HighlightDisplayLevel;
-import com.intellij.codeInsight.daemon.impl.DaemonProgressIndicator;
-import com.intellij.codeInsight.daemon.impl.HighlightInfo;
-import com.intellij.codeInspection.*;
-import com.intellij.ide.util.PropertiesComponent;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ex.ProjectManagerEx;
-import com.intellij.openapi.util.Pair;
-import com.intellij.openapi.util.TextRange;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiElementVisitor;
-import com.intellij.psi.PsiFile;
-import com.lonelybytes.swiftlint.annotator.AnnotatorResult;
-import com.lonelybytes.swiftlint.annotator.InitialInfo;
-import com.lonelybytes.swiftlint.annotator.SwiftLintHighlightingAnnotator;
-import org.jetbrains.annotations.Nls;
-import org.jetbrains.annotations.NotNull;
+import com.intellij.codeHighlighting.HighlightDisplayLevel
+import com.intellij.codeInsight.daemon.impl.DaemonProgressIndicator
+import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.codeInspection.*
+import com.intellij.execution.configurations.PathEnvironmentVariableUtil
+import com.intellij.ide.util.PropertiesComponent
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ex.ProjectManagerEx
+import com.intellij.openapi.util.Pair
+import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElementVisitor
+import com.intellij.psi.PsiFile
+import com.lonelybytes.swiftlint.annotator.AnnotatorResult
+import com.lonelybytes.swiftlint.annotator.SwiftLintHighlightingAnnotator
+import org.jetbrains.annotations.Nls
+import java.io.IOException
+import java.util.*
 
-import java.util.ArrayList;
-import java.util.List;
+class SwiftLintInspection : GlobalSimpleInspectionTool() {
+    class State(private val project: Project) {
+        var isQuickFixEnabled: Boolean
+            get() = PropertiesComponent.getInstance(project).getBoolean(QUICK_FIX_ENABLED)
+            set(value) = PropertiesComponent.getInstance(project).setValue(QUICK_FIX_ENABLED, value)
 
-public class SwiftLintInspection extends GlobalSimpleInspectionTool {
-    private static final String GROUP_NAME_SWIFT = "Swift";
-    private static final String SHORT_NAME = "SwiftLint";
+        var isDisableWhenNoConfigPresent: Boolean
+            get() = PropertiesComponent.getInstance(project).getBoolean(DISABLE_WHEN_NO_CONFIG_PRESENT)
+            set(value) = PropertiesComponent.getInstance(project).setValue(DISABLE_WHEN_NO_CONFIG_PRESENT, value)
 
-    private static final SwiftLintHighlightingAnnotator ANNOTATOR = new SwiftLintHighlightingAnnotator();
+        var projectSwiftLintPath: String?
+            get() = PropertiesComponent.getInstance(project).getValue(LOCAL_APP_NAME)
+            set(aAppPath) = PropertiesComponent.getInstance(project).setValue(LOCAL_APP_NAME, aAppPath)
 
-    public static class State {
-        private static final String PREFIX = "com.appcodeplugins.swiftlint";
-        private static final String VERSION_1_7 = "v1_7";
+        val projectOrGlobalSwiftLintPath: String
+            get() = projectSwiftLintPath ?: foundSwiftLintPath
 
-        private static final String QUICK_FIX_ENABLED = PREFIX + "." + VERSION_1_7 + ".quickFixEnabled";
-        private static final String APP_NAME = PREFIX + "." + VERSION_1_7 + ".appName";
-        private static final String DISABLE_WHEN_NO_CONFIG_PRESENT = PREFIX + "." + VERSION_1_7 + ".isDisableWhenNoConfigPresent";
-        private static final String LOCAL_APP_NAME = PREFIX + "." + VERSION_1_7 + ".localAppName";
+        companion object {
+            private const val PREFIX = "com.appcodeplugins.swiftlint"
+            private const val VERSION_1_7 = "v1_7"
 
-        public String getAppPath() {
-            return PropertiesComponent.getInstance().getValue(APP_NAME);
-        }
+            private const val LOCAL_APP_NAME = "$PREFIX.$VERSION_1_7.localAppName"
+            private const val QUICK_FIX_ENABLED = "$PREFIX.$VERSION_1_7.quickFixEnabled"
+            private const val DISABLE_WHEN_NO_CONFIG_PRESENT = "$PREFIX.$VERSION_1_7.isDisableWhenNoConfigPresent"
 
-        public void setAppPath(String aAppPath) {
-            PropertiesComponent.getInstance().setValue(APP_NAME, aAppPath);
-        }
+            private val foundSwiftLintPath: String
+                get() {
+                    val swiftLintFilePath = PathEnvironmentVariableUtil.findInPath("swiftlint")
+                    return if (swiftLintFilePath != null) {
+                        try {
+                            swiftLintFilePath.canonicalPath
+                        } catch (aE: IOException) {
+                            aE.printStackTrace()
+                            swiftLintFilePath.absolutePath
+                        }
+                    } else {
+                        Configuration.DEFAULT_SWIFTLINT_PATH
+                    }
+                }
 
-        public boolean isQuickFixEnabled() {
-            return PropertiesComponent.getInstance().getBoolean(QUICK_FIX_ENABLED);
-        }
-
-        public void setQuickFixEnabled(boolean aQuickFixEnabled) {
-            PropertiesComponent.getInstance().setValue(QUICK_FIX_ENABLED, aQuickFixEnabled);
-        }
-
-        public boolean isDisableWhenNoConfigPresent() {
-            return PropertiesComponent.getInstance().getBoolean(DISABLE_WHEN_NO_CONFIG_PRESENT);
-        }
-
-        public void setDisableWhenNoConfigPresent(boolean aDisableWhenNoConfigPresent) {
-            PropertiesComponent.getInstance().setValue(DISABLE_WHEN_NO_CONFIG_PRESENT, aDisableWhenNoConfigPresent);
-        }
-
-        public String getLocalAppPath() {
-            return PropertiesComponent.getInstance(getProject()).getValue(LOCAL_APP_NAME);
-        }
-
-        public void setLocalAppPath(String aAppPath) {
-            PropertiesComponent.getInstance(getProject()).setValue(LOCAL_APP_NAME, aAppPath);
-        }
-
-        public String getLocalOrGlobalAppPath() {
-            String localAppPath = getLocalAppPath();
-            if (localAppPath != null && !localAppPath.isEmpty()) {
-                return localAppPath;
-            }
-            return getAppPath();
-        }
-
-        private Project getProject() {
-            ProjectManagerEx projectManager = ProjectManagerEx.getInstanceEx();
-            Project[] openProjects = projectManager.getOpenProjects();
-            return openProjects.length == 0 ? projectManager.getDefaultProject() : openProjects[0];
         }
     }
 
-    public static State STATE = new State();
-
-    @NotNull
-    @Override
-    public HighlightDisplayLevel getDefaultLevel() {
-        return HighlightDisplayLevel.WARNING;
+    override fun getDefaultLevel(): HighlightDisplayLevel {
+        return HighlightDisplayLevel.WARNING
     }
 
     @Nls
-    @NotNull
-    @Override
-    public String getGroupDisplayName() {
-        return GROUP_NAME_SWIFT;
+    override fun getGroupDisplayName(): String {
+        return GROUP_NAME_SWIFT
     }
 
-    @NotNull
-    @Override
-    public String getShortName() {
-        return SHORT_NAME;
+    override fun getShortName(): String {
+        return SHORT_NAME
     }
 
-    @Override
-    public void checkFile(@NotNull PsiFile originalFile, @NotNull InspectionManager manager,
-                          @NotNull ProblemsHolder problemsHolder, @NotNull GlobalInspectionContext globalContext,
-                          @NotNull ProblemDescriptionsProcessor problemDescriptionsProcessor) {
-        for (Pair<PsiFile, HighlightInfo> pair : runGeneralHighlighting(originalFile)) {
-            PsiFile file = pair.first;
-            HighlightInfo info = pair.second;
-
-            TextRange range = new TextRange(info.startOffset, info.endOffset);
-            PsiElement element = file.findElementAt(info.startOffset);
-
-            while (element != null && !element.getTextRange().contains(range)) {
-                element = element.getParent();
+    override fun checkFile(originalFile: PsiFile, manager: InspectionManager,
+                           problemsHolder: ProblemsHolder, globalContext: GlobalInspectionContext,
+                           problemDescriptionsProcessor: ProblemDescriptionsProcessor) {
+        for (pair in runGeneralHighlighting(originalFile)) {
+            val file = pair.first!!
+            val info = pair.second!!
+            val range = TextRange(info.startOffset, info.endOffset)
+            var element = file.findElementAt(info.startOffset)
+            while (element != null && !element.textRange.contains(range)) {
+                element = element.parent
             }
-
             if (element == null) {
-                element = file;
+                element = file
             }
-
-            if (SuppressionUtil.inspectionResultSuppressed(element, this)) continue;
-
+            if (SuppressionUtil.inspectionResultSuppressed(element, this)) continue
             GlobalInspectionUtil.createProblem(
                     element,
                     info,
-                    range.shiftRight(-element.getNode().getStartOffset()),
-                    info.getProblemGroup(),
+                    range.shiftRight(-element.node.startOffset),
+                    info.problemGroup,
                     manager,
                     problemDescriptionsProcessor,
                     globalContext
-            );
+            )
         }
     }
 
-    private static List<Pair<PsiFile, HighlightInfo>> runGeneralHighlighting(PsiFile file) {
-        SwiftLintInspection.MyPsiElementVisitor visitor = new SwiftLintInspection.MyPsiElementVisitor();
-        file.accept(visitor);
-        return new ArrayList<>(visitor.result);
-    }
+    private class MyPsiElementVisitor : PsiElementVisitor() {
+        val result: MutableList<Pair<PsiFile?, HighlightInfo?>> = ArrayList()
+        override fun visitFile(file: PsiFile) {
+            file.virtualFile ?: return
 
-    private static class MyPsiElementVisitor extends PsiElementVisitor {
-        private final List<Pair<PsiFile, HighlightInfo>> result = new ArrayList<>();
-
-        MyPsiElementVisitor() {
-        }
-
-        @Override
-        public void visitFile(final PsiFile file) {
-            final VirtualFile virtualFile = file.getVirtualFile();
-            if (virtualFile == null) {
-                return;
-            }
-
-            DaemonProgressIndicator progress = new DaemonProgressIndicator();
-            progress.start();
+            val progress = DaemonProgressIndicator()
+            progress.start()
             try {
-                InitialInfo initialInfo = ANNOTATOR.collectInformation(file);
-                AnnotatorResult annotatorResult = null;
+                val initialInfo = ANNOTATOR.collectInformation(file)
+                var annotatorResult: AnnotatorResult? = null
                 if (initialInfo != null) {
-                    annotatorResult = ANNOTATOR.doAnnotate(initialInfo);
+                    annotatorResult = ANNOTATOR.doAnnotate(initialInfo)
                 }
-                ANNOTATOR.highlightInfos(file, annotatorResult).forEach(aHighlightInfo -> {
-                    result.add(Pair.create(file, aHighlightInfo));
-                });
+                ANNOTATOR
+                        .highlightInfos(file, annotatorResult)
+                        .forEach { result.add(Pair.create(file, it)) }
             } finally {
-                progress.stop();
+                progress.stop()
             }
+        }
+    }
+
+    companion object {
+        private const val GROUP_NAME_SWIFT = "Swift"
+        private const val SHORT_NAME = "SwiftLint"
+        private val ANNOTATOR = SwiftLintHighlightingAnnotator()
+
+        private fun runGeneralHighlighting(file: PsiFile): List<Pair<PsiFile?, HighlightInfo?>> {
+            val visitor = MyPsiElementVisitor()
+            file.accept(visitor)
+            return ArrayList(visitor.result)
         }
     }
 }

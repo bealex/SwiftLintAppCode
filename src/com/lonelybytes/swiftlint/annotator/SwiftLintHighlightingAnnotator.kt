@@ -1,637 +1,487 @@
-package com.lonelybytes.swiftlint.annotator;
+package com.lonelybytes.swiftlint.annotator
 
-import com.intellij.codeInsight.daemon.impl.HighlightInfo;
-import com.intellij.codeInsight.intention.IntentionAction;
-import com.intellij.lang.ASTNode;
-import com.intellij.lang.annotation.*;
-import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
-import com.intellij.openapi.actionSystem.ActionGroup;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.command.CommandProcessor;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
-import com.intellij.openapi.progress.ProcessCanceledException;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ProjectFileIndex;
-import com.intellij.openapi.util.TextRange;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiWhiteSpace;
-import com.intellij.psi.impl.source.tree.LeafPsiElement;
-import com.intellij.util.IncorrectOperationException;
-import com.jetbrains.swift.psi.SwiftFunctionDeclaration;
-import com.jetbrains.swift.psi.SwiftIdentifierPattern;
-import com.jetbrains.swift.psi.SwiftParameter;
-import com.jetbrains.swift.psi.SwiftVariableDeclaration;
-import com.lonelybytes.swiftlint.Configuration;
-import com.lonelybytes.swiftlint.SwiftLint;
-import com.lonelybytes.swiftlint.SwiftLintConfig;
-import com.lonelybytes.swiftlint.SwiftLintInspection;
-import org.jetbrains.annotations.Nls;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.codeInsight.intention.IntentionAction
+import com.intellij.lang.ASTNode
+import com.intellij.lang.annotation.AnnotationHolder
+import com.intellij.lang.annotation.ExternalAnnotator
+import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
+import com.intellij.openapi.actionSystem.ActionGroup
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.CommandProcessor
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.impl.source.tree.LeafPsiElement
+import com.intellij.util.IncorrectOperationException
+import com.jetbrains.swift.psi.SwiftFunctionDeclaration
+import com.jetbrains.swift.psi.SwiftParameter
+import com.jetbrains.swift.psi.SwiftVariableDeclaration
+import com.lonelybytes.swiftlint.Configuration
+import com.lonelybytes.swiftlint.SwiftLint
+import com.lonelybytes.swiftlint.SwiftLintConfig
+import com.lonelybytes.swiftlint.SwiftLintInspection
+import java.io.IOException
+import java.util.*
+import java.util.function.Consumer
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static com.lonelybytes.swiftlint.SwiftLintInspection.STATE;
-
-public class SwiftLintHighlightingAnnotator extends ExternalAnnotator<InitialInfo, AnnotatorResult> {
-    private static SwiftLintConfig swiftLintConfig = null;
-    private static final SwiftLint SWIFT_LINT = new SwiftLint();
-
-    private static final String SHORT_NAME = "SwiftLint";
-    private static final String QUICK_FIX_NAME = "Run swiftlint autocorrect";
-
-    @Override
-    public String getPairedBatchInspectionShortName() {
-        return SHORT_NAME;
-    }
-
-    @Nullable
-    @Override
-    public InitialInfo collectInformation(@NotNull PsiFile aFile) {
-        VirtualFile virtualFile = aFile.getVirtualFile();
-        String filePath = virtualFile.getCanonicalPath();
-
-        Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
-        if (document == null || document.getLineCount() == 0 || !shouldCheck(aFile)) {
-            return new InitialInfo(filePath, false);
+class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, AnnotatorResult?>() {
+    override fun collectInformation(aFile: PsiFile): InitialInfo? {
+        val virtualFile: VirtualFile = aFile.virtualFile
+        val filePath: String = virtualFile.canonicalPath ?: return null
+        val document: Document =
+                FileDocumentManager.getInstance().getDocument(virtualFile) ?: return InitialInfo(aFile, filePath, null, false)
+        if (document.lineCount == 0 || !shouldCheck(aFile)) {
+            return InitialInfo(aFile, filePath, document, false)
         }
 
-        if (STATE == null) {
-            STATE = new SwiftLintInspection.State();
-            STATE.setAppPath(Configuration.DEFAULT_SWIFTLINT_PATH);
-            STATE.setDisableWhenNoConfigPresent(false);
-            STATE.setQuickFixEnabled(true);
-        } else if (STATE.getAppPath() == null || STATE.getAppPath().isEmpty()) {
-            STATE.setAppPath(Configuration.DEFAULT_SWIFTLINT_PATH);
-        }
-
-        String swiftLintConfigPath = SwiftLintConfig.swiftLintConfigPath(aFile.getProject(), 5);
-        if (STATE.isDisableWhenNoConfigPresent() && swiftLintConfigPath == null) {
-            return null;
+        val swiftLintConfigPath: String? = SwiftLintConfig.swiftLintConfigPath(aFile.project, 5)
+        if (SwiftLintInspection.State(aFile.project).isDisableWhenNoConfigPresent && swiftLintConfigPath == null) {
+            return null
         }
 
         if (swiftLintConfig == null) {
-            swiftLintConfig = new SwiftLintConfig(aFile.getProject(), swiftLintConfigPath);
+            swiftLintConfig = SwiftLintConfig(aFile.project, swiftLintConfigPath)
         }
-
-        return new InitialInfo(filePath, true);
+        return InitialInfo(aFile, filePath, document, true)
     }
 
-    @Nullable
-    @Override
-    public AnnotatorResult doAnnotate(InitialInfo collectedInfo) {
-        if (!collectedInfo.shouldProcess) {
-            return null;
+    override fun doAnnotate(collectedInfo: InitialInfo?): AnnotatorResult? {
+        collectedInfo ?: return null
+        if (!collectedInfo.shouldProcess) return null
+
+        collectedInfo.document?.let {
+            ApplicationManager.getApplication().invokeLater { FileDocumentManager.getInstance().saveDocument(it) }
         }
 
-        saveAll();
-                
-        String toolPath = STATE.getLocalOrGlobalAppPath();
-
-        List<AnnotatorResult.Line> lines = new ArrayList<>();
+        val toolPath: String = SwiftLintInspection.State(collectedInfo.file.project).projectOrGlobalSwiftLintPath
+        val lines: MutableList<AnnotatorResult.Line> = ArrayList()
         try {
-            List<String> lintedErrors;
-            lintedErrors = SWIFT_LINT.executeSwiftLint(toolPath, "lint", swiftLintConfig, collectedInfo.filePath);
-
-            if (lintedErrors != null && !lintedErrors.isEmpty()) {
-                for (String line: lintedErrors) {
-//                    System.out.println("--> " + line);
-
-                    String newLine = line.replaceAll("\"(.*),(.*)\"", "\"$1|||$2\"");
-                    while (!newLine.equals(line)) {
-                        line = newLine;
-                        newLine = line.replaceAll("\"(.*),(.*)\"", "\"$1|||$2\"");
+            val lintedErrors: List<String> = SWIFT_LINT.executeSwiftLint(toolPath, "lint", swiftLintConfig, collectedInfo.path)
+            if (lintedErrors.isNotEmpty()) {
+                for (line in lintedErrors) {
+                    var lineLocal = line
+                    var newLine = lineLocal.replace("\"(.*),(.*)\"".toRegex(), "\"$1|||$2\"")
+                    while (newLine != lineLocal) {
+                        lineLocal = newLine
+                        newLine = lineLocal.replace("\"(.*),(.*)\"".toRegex(), "\"$1|||$2\"")
                     }
-
-                    String[] lineParts = Arrays.stream(line.split("\\s*,\\s*")).map(aS -> aS.replace("|||", ",")).toArray(String[]::new);
-                    if (lineParts.length == 0 || !line.contains(",") || line.trim().isEmpty()) {
-                        continue;
+                    var lineParts: List<String> = lineLocal
+                            .split("\\s*,\\s*".toRegex())
+                            .map { it.replace("|||", ",") }
+                    if (lineParts.isEmpty() || !lineLocal.contains(",") || lineLocal.trim { it <= ' ' }.isEmpty()) {
+                        continue
                     }
-
-                    if (lineParts[0].equals("file")) {
-                        lineParts = Arrays.copyOfRange(lineParts, 7, lineParts.length);
+                    if (lineParts[0] == "file") {
+                        lineParts = lineParts.subList(7, lineParts.size)
                     }
-
-                    while (lineParts.length >= 7) {
-                        String[] parts = Arrays.copyOfRange(lineParts, 0, 7);
-                        lineParts = Arrays.copyOfRange(lineParts, 7, lineParts.length);
-
-                        lines.add(new AnnotatorResult.Line(parts));
+                    while (lineParts.size >= 7) {
+                        val parts = lineParts.subList(0, 7)
+                        lineParts = lineParts.subList(7, lineParts.size)
+                        lines.add(AnnotatorResult.Line(parts))
                     }
                 }
             }
-        } catch (IOException ex) {
-            if (ex.getMessage().contains("No such file or directory") || ex.getMessage().contains("error=2")) {
-                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "Can't find swiftlint utility here:\n" + toolPath + "\nPlease check the path in settings.", NotificationType.ERROR));
+        } catch (ex: IOException) {
+            if (ex.message!!.contains("No such file or directory") || ex.message!!.contains("error=2")) {
+                Notifications.Bus.notify(Notification(Configuration.KEY_SWIFTLINT, "Error", "Can't find swiftlint utility here:\n$toolPath\nPlease check the path in settings.", NotificationType.ERROR))
             } else {
-                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + ex.getMessage(), NotificationType.ERROR));
+                Notifications.Bus.notify(Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + ex.message, NotificationType.ERROR))
             }
-        } catch (Exception ex) {
-            Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "Exception: " + ex.getMessage(), NotificationType.INFORMATION));
-            ex.printStackTrace();
+        } catch (ex: Exception) {
+            Notifications.Bus.notify(Notification(Configuration.KEY_SWIFTLINT, "Error", "Exception: " + ex.message, NotificationType.INFORMATION))
+            ex.printStackTrace()
         }
-
-        return new AnnotatorResult(lines);
+        return AnnotatorResult(lines)
     }
 
-    public List<HighlightInfo> highlightInfos(@NotNull PsiFile aFile, AnnotatorResult aResult) {
+    fun highlightInfos(aFile: PsiFile, aResult: AnnotatorResult?): List<HighlightInfo?> {
         if (aResult == null) {
-            return Collections.emptyList();
+            return emptyList<HighlightInfo>()
         }
-
-        Document document = FileDocumentManager.getInstance().getDocument(aFile.getVirtualFile());
-        if (document == null) {
-            return Collections.emptyList();
+        val document: Document = FileDocumentManager.getInstance().getDocument(aFile.virtualFile)
+                ?: return emptyList<HighlightInfo>()
+        val result: MutableList<HighlightInfo?> = ArrayList()
+        for (line in aResult.lines) {
+            line.fixPositionInDocument(document)
+            result.add(processErrorLine(aFile, document, line))
         }
-
-        List<HighlightInfo> result = new ArrayList<>();
-        for (AnnotatorResult.Line line : aResult.lines) {
-            line.fixPositionInDocument(document);
-            result.add(processErrorLine(aFile, document, line));
-        }
-
-        return result;
+        return result
     }
 
-    @Override
-    public void apply(@NotNull PsiFile aFile, AnnotatorResult aResult, @NotNull AnnotationHolder aHolder) {
-        highlightInfos(aFile, aResult).forEach(aHighlightInfo -> {
+    override fun apply(aFile: PsiFile, annotationResult: AnnotatorResult?, aHolder: AnnotationHolder) {
+        highlightInfos(aFile, annotationResult).forEach(Consumer { aHighlightInfo: HighlightInfo? ->
             if (aHighlightInfo != null) {
-                TextRange highlightRange = TextRange.from(aHighlightInfo.startOffset, aHighlightInfo.endOffset - aHighlightInfo.startOffset);
-                AnnotationBuilder annotationBuilder = aHolder
-                        .newAnnotation(aHighlightInfo.getSeverity(), aHighlightInfo.getDescription())
-                        .range(highlightRange);
-                if (SwiftLintInspection.STATE.isQuickFixEnabled()) {
-                    annotationBuilder = annotationBuilder
-                            .withFix(new IntentionAction() {
-                                @Nls
-                                @NotNull
-                                @Override
-                                public String getText() {
-                                    return QUICK_FIX_NAME;
+                val highlightRange: TextRange = TextRange.from(aHighlightInfo.startOffset, aHighlightInfo.endOffset - aHighlightInfo.startOffset)
+                var annotationBuilder = aHolder
+                        .newAnnotation(aHighlightInfo.severity, aHighlightInfo.description)
+                        .range(highlightRange)
+                if (SwiftLintInspection.State(aFile.project).isQuickFixEnabled) {
+                    annotationBuilder
+                            .withFix(object : IntentionAction {
+                                override fun getText(): String {
+                                    return QUICK_FIX_NAME
                                 }
 
-                                @Nls
-                                @NotNull
-                                @Override
-                                public String getFamilyName() {
-                                    return "SwiftLint";
+                                override fun getFamilyName(): String {
+                                    return SHORT_NAME
                                 }
 
-                                @Override
-                                public boolean isAvailable(@NotNull Project project, Editor editor, PsiFile file) {
-                                    return true;
+                                override fun isAvailable(project: Project, editor: Editor, file: PsiFile): Boolean {
+                                    return true
                                 }
 
-                                @Override
-                                public void invoke(@NotNull Project project, Editor editor, PsiFile file) throws IncorrectOperationException {
-                                    executeSwiftLintQuickFix(file);
+                                @Throws(IncorrectOperationException::class)
+                                override operator fun invoke(project: Project, editor: Editor, file: PsiFile) {
+                                    executeSwiftLintQuickFix(file)
                                 }
 
-                                @Override
-                                public boolean startInWriteAction() {
-                                    return false;
-                                }
-                            });
+                                override fun startInWriteAction(): Boolean = false
+                            }).also { annotationBuilder = it }
                 }
-                annotationBuilder.create();
+                annotationBuilder.create()
             }
-        });
+        })
     }
 
     // Process SwiftLint output
-    
-    private HighlightInfo processErrorLine(@NotNull PsiFile aFile, Document aDocument, AnnotatorResult.Line aLine) {
-        int lineNumber = aLine.line;
-        int columnNumber = aLine.column;
-
-        int startOffset = aDocument.getLineStartOffset(lineNumber);
-        int endOffset = lineNumber < aDocument.getLineCount() - 1
-                ? aDocument.getLineStartOffset(lineNumber + 1)
-                : aDocument.getLineEndOffset(lineNumber);
-
-        TextRange range = TextRange.create(startOffset, endOffset);
-
-        boolean weHaveAColumn = columnNumber > 0;
-
+    private fun processErrorLine(aFile: PsiFile, aDocument: Document, aLine: AnnotatorResult.Line): HighlightInfo? {
+        val lineNumber = aLine.line
+        val columnNumber = aLine.column
+        var startOffset = aDocument.getLineStartOffset(lineNumber)
+        val endOffset = if (lineNumber < aDocument.lineCount - 1) aDocument.getLineStartOffset(lineNumber + 1) else aDocument.getLineEndOffset(lineNumber)
+        var range: TextRange = TextRange.create(startOffset, endOffset)
+        val weHaveAColumn = columnNumber > 0
         if (weHaveAColumn) {
-            startOffset = Math.min(aDocument.getTextLength() - 1, startOffset + columnNumber - 1);
+            startOffset = (aDocument.textLength - 1).coerceAtMost(startOffset + columnNumber - 1)
         }
-
-        CharSequence chars = aDocument.getImmutableCharSequence();
-        if (chars.length() <= startOffset) {
+        val chars = aDocument.immutableCharSequence
+        if (chars.length <= startOffset) {
             // This can happen when we browsing a file after it has been edited (some lines removed for example)
-            return null;
+            return null
         }
-
-        char startChar = chars.charAt(startOffset);
-        PsiElement startPsiElement = aFile.findElementAt(startOffset);
-        ASTNode startNode = startPsiElement == null ? null : startPsiElement.getNode();
-
-        boolean isErrorInLineComment = startNode != null && startNode.getElementType().toString().equals("EOL_COMMENT");
-
-        HighlightSeverity severity = severityFromSwiftLint(aLine.severity);
+        val startChar = chars[startOffset]
+        val startPsiElement: PsiElement = aFile.findElementAt(startOffset) ?: return null
+        val startNode: ASTNode? = startPsiElement.node
+        val isErrorInLineComment = startNode != null && startNode.elementType.toString() == "EOL_COMMENT"
+        var severity: HighlightSeverity = severityFromSwiftLint(aLine.severity)
 
         // Rules: https://github.com/realm/SwiftLint/blob/master/Rules.md
-
         if (isErrorInLineComment) {
-            range = TextRange.create(aDocument.getLineStartOffset(lineNumber), aDocument.getLineEndOffset(lineNumber));
+            range = TextRange.create(aDocument.getLineStartOffset(lineNumber), aDocument.getLineEndOffset(lineNumber))
         } else {
-            boolean isErrorNewLinesOnly = (startChar == '\n');
-            boolean isErrorInSymbol = !Character.isLetterOrDigit(startChar) && !Character.isWhitespace(startChar);
-            isErrorInSymbol |= aLine.rule.equals("opening_brace") || aLine.rule.equals("colon");
-
+            val isErrorNewLinesOnly = startChar == '\n'
+            var isErrorInSymbol = !Character.isLetterOrDigit(startChar) && !Character.isWhitespace(startChar)
+            isErrorInSymbol = isErrorInSymbol or (aLine.rule == "opening_brace" || aLine.rule == "colon")
             if (!isErrorInSymbol) {
                 if (!isErrorNewLinesOnly && weHaveAColumn) {
                     // SwiftLint returns column for the previous non-space token, not the erroneous one. Let's try to correct it.
-                    switch (aLine.rule) {
-                        case "return_arrow_whitespace": {
-                            PsiElement psiElement = nextElement(aFile, startOffset, true);
-                            range = psiElement != null ? psiElement.getTextRange() : range;
-                            break;
+                    when (aLine.rule) {
+                        "return_arrow_whitespace" -> {
+                            val psiElement: PsiElement? = nextElement(aFile, startOffset, true)
+                            range = if (psiElement != null) psiElement.textRange else range
                         }
-                        case "unused_closure_parameter": {
-                            PsiElement psiElement = aFile.findElementAt(startOffset);
-                            range = psiElement != null ? psiElement.getTextRange() : range;
-                            break;
+                        "unused_closure_parameter" -> {
+                            aFile.findElementAt(startOffset)?.let { range = it.textRange }
                         }
-                        case "redundant_void_return": {
-                            PsiElement psiElement = aFile.findElementAt(startOffset);
-                            range = psiElement != null && psiElement.getNextSibling() != null ? psiElement.getNextSibling().getTextRange() : range;
-                            break;
+                        "redundant_void_return" -> {
+                            aFile.findElementAt(startOffset)?.nextSibling?.let { range = it.textRange }
                         }
-                        case "let_var_whitespace":
-                        case "syntactic_sugar":
-                        case "dynamic_inline": {
-                            PsiElement psiElement = aFile.findElementAt(startOffset);
-                            if (psiElement != null) {
-                                psiElement = psiElement.getParent();
+                        "let_var_whitespace", "syntactic_sugar", "dynamic_inline" -> {
+                            aFile.findElementAt(startOffset)?.parent?.let { range = it.textRange }
+                        }
+                        "variable_name", "identifier_name" -> {
+                            range = findVarInDefinition(aFile, startOffset) ?: range
+                        }
+                        "type_name" -> {
+                            aFile.findElementAt(startOffset)?.let {
+                                range =
+                                        if ((it as LeafPsiElement).elementType.toString() == "IDENTIFIER")
+                                            it.textRange
+                                        else
+                                            getNextTokenAtIndex(aFile, startOffset, aLine.rule) ?: range
                             }
-                            range = psiElement != null ? psiElement.getTextRange() : range;
-                            break;
                         }
-                        case "variable_name":
-                        case "identifier_name": {
-                            range = findVarInDefinition(aFile, startOffset);
-                            break;
+                        "force_cast", "operator_whitespace", "shorthand_operator", "single_test_class", "implicitly_unwrapped_optional" -> {
+                            range = getNextTokenAtIndex(aFile, startOffset, aLine.rule) ?: range
                         }
-                        case "type_name": {
-                            PsiElement psiElement = aFile.findElementAt(startOffset);
-                            if (psiElement != null && ((LeafPsiElement) psiElement).getElementType().toString().equals("IDENTIFIER")) {
-                                range = psiElement.getTextRange();
-                            } else {
-                                range = psiElement != null ? getNextTokenAtIndex(aFile, startOffset, aLine.rule) : range;
+                        "private_unit_test", "private_outlet", "override_in_extension" -> {
+                            prevElement(aFile, startOffset)?.let { range = it.textRange }
+                        }
+                        "redundant_optional_initialization" -> {
+                            getNextTokenAtIndex(aFile, startOffset, aLine.rule)?.let { range = getNextTokenAtIndex(aFile, it.endOffset, aLine.rule) ?: range }
+                        }
+                        "trailing_closure" -> {
+                            getNextTokenAtIndex(aFile, startOffset, aLine.rule)?.let { range = getNextTokenAtIndex(aFile, it.endOffset, aLine.rule) ?: range }
+                            aFile.findElementAt(range.startOffset)?.let { range = it.parent?.textRange ?: range }
+                        }
+                        else -> {
+                            aFile.findElementAt(startOffset)?.let {
+                                range = if (it.node is PsiWhiteSpace) {
+                                    getNextTokenAtIndex(aFile, startOffset, aLine.rule) ?: range
+                                } else {
+                                    it.textRange
+                                }
                             }
-                            break;
-                        }
-                        case "force_cast": 
-                        case "operator_whitespace":
-                        case "shorthand_operator":
-                        case "single_test_class":
-                        case "implicitly_unwrapped_optional": {
-                            range = getNextTokenAtIndex(aFile, startOffset, aLine.rule);
-                            break;
-                        }
-                        case "private_unit_test":
-                        case "private_outlet":
-                        case "override_in_extension": {
-                            PsiElement psiElement = prevElement(aFile, startOffset);
-                            range = psiElement != null ? psiElement.getTextRange() : range;
-                            break;
-                        }
-                        case "redundant_optional_initialization": {
-                            range = getNextTokenAtIndex(aFile, getNextTokenAtIndex(aFile, startOffset, aLine.rule).getEndOffset(), aLine.rule);
-                            break;
-                        }
-                        case "trailing_closure": {
-                            range = getNextTokenAtIndex(aFile, getNextTokenAtIndex(aFile, startOffset, aLine.rule).getEndOffset(), aLine.rule);
-                            PsiElement psiElement = aFile.findElementAt(range.getStartOffset());
-                            range = psiElement != null && psiElement.getParent() != null ? psiElement.getParent().getTextRange() : range;
-                            break;
-                        }
-                        default: {
-                            PsiElement psiElement = aFile.findElementAt(startOffset);
-                            if (psiElement != null && psiElement.getNode() instanceof PsiWhiteSpace) {
-                                range = getNextTokenAtIndex(aFile, startOffset, aLine.rule);
-                            } else {
-                                range = psiElement != null ? psiElement.getTextRange() : range;
-                            }
-                            break;
                         }
                     }
                 } else if (isErrorNewLinesOnly) {
-                    switch (aLine.rule) {
-                        case "superfluous_disable_command": {
-                            PsiElement psiElement = aFile.findElementAt(startOffset - 1);
-                            range = psiElement != null ? psiElement.getTextRange() : range;
-                            break;
+                    when (aLine.rule) {
+                        "superfluous_disable_command" -> {
+                            aFile.findElementAt(startOffset - 1)?.let { range = it.textRange }
                         }
-                        case "prohibited_super_call":
-                        case "overridden_super_call":
-                        case "empty_enum_arguments":
-                        case "empty_parameters": {
-                            PsiElement psiElement = aFile.findElementAt(startOffset);
-                            if (psiElement != null) {
-                                psiElement = psiElement.getNode().getTreeParent().getPsi();
-                            }
-                            range = psiElement != null ? psiElement.getTextRange() : range;
-                            break;
+                        "prohibited_super_call", "overridden_super_call", "empty_enum_arguments", "empty_parameters" -> {
+                            aFile.findElementAt(startOffset)?.node?.treeParent?.psi?.let { range = it.textRange }
                         }
-                        default: {
+                        else -> {
                             // Let's select all empty lines here, we need to show that something is wrong with them
-                            range = getEmptyLinesAroundIndex(aDocument, startOffset);
+                            range = getEmptyLinesAroundIndex(aDocument, startOffset)
                         }
                     }
                 }
             } else {
-                switch (aLine.rule) {
-                    case "empty_enum_arguments":
-                    case "empty_parentheses_with_trailing_closure":
-                    case "let_var_whitespace":
-                    case "empty_parameters": {
-                        PsiElement psiElement = aFile.findElementAt(startOffset);
-                        if (psiElement != null) {
-                            psiElement = psiElement.getNode().getTreeParent().getPsi();
-                        }
-                        range = psiElement != null ? psiElement.getTextRange() : range;
-                        break;
+                when (aLine.rule) {
+                    "empty_enum_arguments", "empty_parentheses_with_trailing_closure", "let_var_whitespace", "empty_parameters" -> {
+                        aFile.findElementAt(startOffset)?.node?.treeParent?.psi?.let { range = it.textRange }
                     }
-                    case "return_arrow_whitespace": {
-                        PsiElement psiElement = aFile.findElementAt(startOffset);
-                        range = psiElement != null ? psiElement.getParent().getTextRange() : range;
-                        break;
+                    "return_arrow_whitespace" -> {
+                        aFile.findElementAt(startOffset)?.let { range = it.parent.textRange }
                     }
-                    default: {
-                        PsiElement psiElement = aFile.findElementAt(startOffset);
-                        if (psiElement != null && "-".equals(psiElement.getText())) {
-                            psiElement = psiElement.getParent().getParent();
-                        }
-
-                        if (psiElement != null) {
-                            range = psiElement.getTextRange();
-
-                            if (aLine.rule.equals("colon")) {
-                                range = getNextTokenAtIndex(aFile, startOffset, aLine.rule);
+                    "trailing_semicolon" -> {
+                        aFile.findElementAt(startOffset)?.let { range = it.textRange }
+                    }
+                    else -> {
+                        aFile.findElementAt(startOffset)?.let { element ->
+                            when {
+                                aLine.rule == "colon" -> {
+                                    getNextTokenAtIndex(aFile, startOffset, aLine.rule)?.let { range = it }
+                                }
+                                element.text == "-" -> {
+                                    element.parent.parent?.let {
+                                        range = it.textRange
+                                    }
+                                }
+                                else -> {
+                                    range = element.textRange
+                                }
                             }
                         }
                     }
                 }
             }
-
-            if (aLine.rule.equals("opening_brace") && Character.isWhitespace(startChar)) {
-                range = getNextTokenAtIndex(aFile, startOffset, aLine.rule);
+            if (aLine.rule == "opening_brace" && Character.isWhitespace(startChar)) {
+                range = getNextTokenAtIndex(aFile, startOffset, aLine.rule) ?: range
             }
-
-            if (aLine.rule.equals("valid_docs")) {
-                range = prevElement(aFile, startOffset).getTextRange();
+            if (aLine.rule == "valid_docs") {
+                range = prevElement(aFile, startOffset)?.textRange ?: range
             }
-
-            if (aLine.rule.equals("trailing_newline") && !weHaveAColumn && chars.charAt(chars.length() - 1) != '\n') {
-                severity = HighlightSeverity.ERROR;
-                range = TextRange.create(endOffset - 1, endOffset);
+            if (aLine.rule == "trailing_newline" && !weHaveAColumn && chars[chars.length - 1] != '\n') {
+                severity = HighlightSeverity.ERROR
+                range = TextRange.create(endOffset - 1, endOffset)
             }
-
             if (isErrorNewLinesOnly) {
                 // Sometimes we need to highlight several returns. Usual error highlighting will not work in this case
-                severity = HighlightSeverity.WARNING;
+                severity = HighlightSeverity.WARNING
             }
         }
 
-        if (range == null) {
-            range = TextRange.create(aDocument.getLineStartOffset(lineNumber), aDocument.getLineEndOffset(lineNumber));
-        }
-
-        return HighlightInfo.newHighlightInfo(HighlightInfo.convertSeverity(severity)).
-                range(range).
-                descriptionAndTooltip("" + aLine.message.trim() + " (SwiftLint: " + aLine.rule + ")").
-                create();
+        return HighlightInfo
+                .newHighlightInfo(HighlightInfo.convertSeverity(severity))
+                .range(range)
+                .descriptionAndTooltip("" + aLine.message.trim { it <= ' ' } + " (SwiftLint: " + aLine.rule + ")")
+                .create()
     }
 
-    private TextRange getEmptyLinesAroundIndex(Document aDocument, int aInitialIndex) {
-        CharSequence chars = aDocument.getImmutableCharSequence();
-
-        int from = aInitialIndex;
+    private fun getEmptyLinesAroundIndex(aDocument: Document, aInitialIndex: Int): TextRange {
+        val chars = aDocument.immutableCharSequence
+        var from = aInitialIndex
         while (from >= 0) {
-            if (!Character.isWhitespace(chars.charAt(from))) {
-                from += 1;
-                break;
+            if (!Character.isWhitespace(chars[from])) {
+                from += 1
+                break
             }
-            from -= 1;
+            from -= 1
         }
 
-        int to = aInitialIndex;
-        while (to < chars.length()) {
-            if (!Character.isWhitespace(chars.charAt(to))) {
-                to -= 1;
-                break;
+        var to = aInitialIndex
+        while (to < chars.length) {
+            if (!Character.isWhitespace(chars[to])) {
+                to -= 1
+                break
             }
-            to += 1;
+            to += 1
         }
 
-        from = Math.max(0, from);
-
-        if (from > 0 && chars.charAt(from) == '\n') {
-            from += 1;
+        from = 0.coerceAtLeast(from)
+        if (from > 0 && chars[from] == '\n') {
+            from += 1
         }
-
-        while (to > 0 && chars.charAt(to - 1) != '\n') {
-            to -= 1;
+        while (to > 0 && chars[to - 1] != '\n') {
+            to -= 1
         }
-
-        to = Math.max(from, to);
-
-        return new TextRange(from, to);
+        to = from.coerceAtLeast(to)
+        return TextRange(from, to)
     }
 
-    private TextRange getNextTokenAtIndex(@NotNull PsiFile file, int aCharacterIndex, String aErrorType) {
-        TextRange result = null;
-
-        PsiElement psiElement;
+    private fun getNextTokenAtIndex(file: PsiFile, aCharacterIndex: Int, aErrorType: String): TextRange? {
+        var result: TextRange? = null
+        var psiElement: PsiElement?
         try {
-            psiElement = file.findElementAt(aCharacterIndex);
-
+            psiElement = file.findElementAt(aCharacterIndex)
             if (psiElement != null) {
-                if (";".equals(psiElement.getText()) || (aErrorType.equals("variable_name") && psiElement.getNode().getElementType().toString().equals("IDENTIFIER"))) {
-                    result = psiElement.getTextRange();
+                if (";" == psiElement.text || aErrorType == "variable_name" && psiElement.node.elementType.toString() == "IDENTIFIER") {
+                    result = psiElement.textRange
                 } else {
-                    result = psiElement.getTextRange();
-
-                    psiElement = nextElement(file, aCharacterIndex, false);
-
+                    result = psiElement.textRange
+                    psiElement = nextElement(file, aCharacterIndex, false)
                     if (psiElement != null) {
-                        if (psiElement.getContext() != null && psiElement.getContext().getNode().getElementType().toString().equals("OPERATOR_SIGN")) {
-                            result = psiElement.getContext().getNode().getTextRange();
+                        result = if (psiElement.context != null && psiElement.context?.node?.elementType.toString() == "OPERATOR_SIGN") {
+                            psiElement.context?.node?.textRange
                         } else {
-                            result = psiElement.getTextRange();
+                            psiElement.textRange
                         }
                     }
                 }
             }
-        } catch (ProcessCanceledException aE) {
+        } catch (aE: ProcessCanceledException) {
             // Do nothing
-        } catch (Exception aE) {
-            aE.printStackTrace();
+        } catch (aE: Exception) {
+            aE.printStackTrace()
         }
 
-        return result;
+        return result
     }
 
-    @Nullable
-    private TextRange findVarInDefinition(@NotNull PsiFile file, int aCharacterIndex) {
-        TextRange result = null;
-
-        PsiElement psiElement;
+    private fun findVarInDefinition(file: PsiFile, aCharacterIndex: Int): TextRange? {
+        var result: TextRange? = null
+        var psiElement: PsiElement?
         try {
-            psiElement = file.findElementAt(aCharacterIndex);
-
-            if (psiElement != null && ((LeafPsiElement) psiElement).getElementType().toString().equals("IDENTIFIER")) {
-                result = psiElement.getTextRange();
+            psiElement = file.findElementAt(aCharacterIndex)
+            if (psiElement != null && (psiElement as LeafPsiElement).elementType.toString() == "IDENTIFIER") {
+                result = psiElement.getTextRange()
             } else {
                 while (psiElement != null &&
-                        !(psiElement instanceof SwiftVariableDeclaration) &&
-                        !(psiElement instanceof SwiftFunctionDeclaration) &&
-                        !(psiElement instanceof SwiftParameter)) {
-                    psiElement = psiElement.getParent();
+                        psiElement !is SwiftVariableDeclaration &&
+                        psiElement !is SwiftFunctionDeclaration &&
+                        psiElement !is SwiftParameter) {
+                    psiElement = psiElement.parent
                 }
 
                 if (psiElement != null) {
-                    if (psiElement instanceof SwiftVariableDeclaration) {
-                        SwiftVariableDeclaration variableDeclaration = (SwiftVariableDeclaration) psiElement;
-                        SwiftIdentifierPattern identifierPattern = variableDeclaration.getVariables().get(0);
-                        result = identifierPattern.getNode().getTextRange();
-                    } else if (psiElement instanceof SwiftFunctionDeclaration) {
-                        SwiftFunctionDeclaration functionDeclaration = (SwiftFunctionDeclaration) psiElement;
-                        PsiElement identifierPattern = functionDeclaration.getNameIdentifier();
-                        result = identifierPattern.getTextRange();
-                    } else /*if (psiElement instanceof SwiftParameter)*/ {
-                        SwiftParameter variableDeclaration = (SwiftParameter) psiElement;
-                        result = variableDeclaration.getNode().getTextRange();
+                    result = when (psiElement) {
+                        is SwiftVariableDeclaration -> psiElement.variables[0].node.textRange
+                        is SwiftFunctionDeclaration -> psiElement.nameIdentifier?.textRange
+                        is SwiftParameter -> psiElement.node.textRange
+                        else -> psiElement.node.textRange
                     }
                 }
 
                 if (result == null) {
-                    result = file.findElementAt(aCharacterIndex).getTextRange();
+                    result = file.findElementAt(aCharacterIndex)?.textRange
                 }
             }
-        } catch (ProcessCanceledException aE) {
+        } catch (aE: ProcessCanceledException) {
             // Do nothing
-        } catch (Exception aE) {
-            aE.printStackTrace();
+        } catch (aE: Exception) {
+            aE.printStackTrace()
         }
 
-        return result;
+        return result
     }
 
-    private PsiElement nextElement(PsiFile aFile, int aElementIndex, boolean isWhitespace) {
-        PsiElement nextElement = null;
-
-        PsiElement initialElement = aFile.findElementAt(aElementIndex);
-
+    private fun nextElement(aFile: PsiFile, aElementIndex: Int, isWhitespace: Boolean): PsiElement? {
+        var nextElement: PsiElement? = null
+        val initialElement: PsiElement? = aFile.findElementAt(aElementIndex)
         if (initialElement != null) {
-            int index = aElementIndex + initialElement.getTextLength();
-            nextElement = aFile.findElementAt(index);
-
-            while (nextElement != null && (
-                    nextElement == initialElement ||
-                    (!isWhitespace && nextElement instanceof PsiWhiteSpace) ||
-                    (isWhitespace && !(nextElement instanceof PsiWhiteSpace))
-                  )) {
-                index += nextElement.getTextLength();
-                nextElement = aFile.findElementAt(index);
+            var index: Int = aElementIndex + initialElement.textLength
+            nextElement = aFile.findElementAt(index)
+            while (nextElement != null && (nextElement === initialElement ||
+                            !isWhitespace && nextElement is PsiWhiteSpace ||
+                            isWhitespace && nextElement !is PsiWhiteSpace)) {
+                index += nextElement.textLength
+                nextElement = aFile.findElementAt(index)
             }
         }
-
-        return nextElement;
+        return nextElement
     }
 
-    private PsiElement prevElement(PsiFile aFile, int aElementIndex) {
-        PsiElement nextElement = null;
-
-        PsiElement initialElement = aFile.findElementAt(aElementIndex);
-
+    private fun prevElement(aFile: PsiFile, aElementIndex: Int): PsiElement? {
+        var nextElement: PsiElement? = null
+        val initialElement: PsiElement? = aFile.findElementAt(aElementIndex)
         if (initialElement != null) {
-            int index = initialElement.getTextRange().getStartOffset() - 1;
-            nextElement = aFile.findElementAt(index);
-
-            while (nextElement != null && (nextElement == initialElement || nextElement instanceof PsiWhiteSpace)) {
-                index = nextElement.getTextRange().getStartOffset() - 1;
-                if (index >= 0) {
-                    nextElement = aFile.findElementAt(index);
+            var index: Int = initialElement.textRange.startOffset - 1
+            nextElement = aFile.findElementAt(index)
+            while (nextElement != null && (nextElement === initialElement || nextElement is PsiWhiteSpace)) {
+                index = nextElement.textRange.startOffset - 1
+                nextElement = if (index >= 0) {
+                    aFile.findElementAt(index)
                 } else {
-                    break;
+                    break
                 }
             }
         }
-
-        return nextElement;
+        return nextElement
     }
 
-    private static HighlightSeverity severityFromSwiftLint(@NotNull final String severity) {
-        switch (severity.trim().toLowerCase()) {
-            case "error":
-                return HighlightSeverity.ERROR;
-            case "warning":
-                return HighlightSeverity.WARNING;
-            case "style":
-            case "performance":
-            case "portability":
-                return HighlightSeverity.WEAK_WARNING;
-            default:
-                return HighlightSeverity.INFORMATION;
-        }
-    }
-
-    private boolean shouldCheck(@NotNull final PsiFile aFile) {
-        boolean isSwift = "swift".equalsIgnoreCase(aFile.getVirtualFile().getExtension());
-        boolean isInProject = ProjectFileIndex.SERVICE.getInstance(aFile.getProject()).isInSource(aFile.getVirtualFile());
-
-        return isSwift && isInProject;
+    private fun shouldCheck(aFile: PsiFile): Boolean {
+        val isSwift = "swift".equals(aFile.virtualFile.extension, ignoreCase = true)
+        val isInProject: Boolean = ProjectFileIndex.SERVICE.getInstance(aFile.project).isInSource(aFile.virtualFile)
+        return isSwift && isInProject
     }
 
     // QuickFix
-
-    private void executeSwiftLintQuickFix(@NotNull PsiFile file) {
-        VirtualFile virtualFile = file.getVirtualFile();
-
-        String toolPath = STATE.getLocalOrGlobalAppPath();
-        String filePath = virtualFile.getCanonicalPath();
-        if (filePath == null) {
-            return;
-        }
-
-        String name = SWIFT_LINT + " " + QUICK_FIX_NAME;
-
-        CommandProcessor commandProcessor = CommandProcessor.getInstance();
-
-        Runnable action = () -> ApplicationManager.getApplication().runWriteAction(() -> {
-            try {
-                SWIFT_LINT.executeSwiftLint(toolPath, "autocorrect", swiftLintConfig, filePath);
-                ApplicationManager.getApplication().invokeLater(() ->
-                    ApplicationManager.getApplication().runWriteAction(() -> file.getVirtualFile().refresh(false, false))
-                );
-            } catch (Exception e) {
-                Notifications.Bus.notify(new Notification(Configuration.KEY_SWIFTLINT, "Error", "Can't quick-fix.\nException: " + e.getMessage(), NotificationType.ERROR));
-                e.printStackTrace();
+    private fun executeSwiftLintQuickFix(file: PsiFile) {
+        val virtualFile: VirtualFile = file.virtualFile
+        val toolPath: String = SwiftLintInspection.State(file.project).projectOrGlobalSwiftLintPath
+        val filePath: String = virtualFile.canonicalPath ?: return
+        val name = "$SWIFT_LINT $QUICK_FIX_NAME"
+        val commandProcessor = CommandProcessor.getInstance()
+        val action = Runnable {
+            ApplicationManager.getApplication().runWriteAction {
+                try {
+                    SWIFT_LINT.executeSwiftLint(toolPath, "autocorrect", swiftLintConfig, filePath)
+                    ApplicationManager.getApplication().invokeLater {
+                        ApplicationManager.getApplication().runWriteAction {
+                            file.virtualFile.refresh(false, false)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Notifications.Bus.notify(Notification(Configuration.KEY_SWIFTLINT, "Error",
+                            """
+                            Can't quick-fix.
+                            Exception: ${e.message}
+                            """.trimIndent(), NotificationType.ERROR))
+                    e.printStackTrace()
+                }
             }
-        });
-
-        commandProcessor.executeCommand(file.getProject(), action, name, ActionGroup.EMPTY_GROUP);
+        }
+        commandProcessor.executeCommand(file.project, action, name, ActionGroup.EMPTY_GROUP)
     }
 
-    private void saveAll() {
-        final FileDocumentManager documentManager = FileDocumentManager.getInstance();
-        if (documentManager.getUnsavedDocuments().length != 0) {
-            ApplicationManager.getApplication().invokeLater(documentManager::saveAllDocuments);
+    companion object {
+        private var swiftLintConfig: SwiftLintConfig? = null
+        private val SWIFT_LINT: SwiftLint = SwiftLint()
+        private const val SHORT_NAME = "SwiftLint"
+        private const val QUICK_FIX_NAME = "Run swiftlint autocorrect"
+
+        private fun severityFromSwiftLint(severity: String): HighlightSeverity {
+            return when (severity.trim { it <= ' ' }.toLowerCase()) {
+                "error" -> HighlightSeverity.ERROR
+                "warning" -> HighlightSeverity.WARNING
+                "style", "performance", "portability" -> HighlightSeverity.WEAK_WARNING
+                else -> HighlightSeverity.INFORMATION
+            }
         }
     }
 }
