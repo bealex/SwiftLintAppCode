@@ -4,8 +4,8 @@
     <id>com.appcodeplugins.swiftlint</id>
 
     <name>SwiftLint</name>
-    <version>1.11.0</version>
-    <vendor email="alex@lonelybytes.com" url="http://github.com/bealex/SwiftLintAppCode">Alexander Babaev</vendor>
+    <version>1.13.0</version>
+    <vendor email="alex@lonelybytes.com" url="https://github.com/bealex/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[
     <p>Enables code highlighting of, and auto&ndash;correct for, SwiftLint, a tool to enforce Swift style and
@@ -20,6 +20,17 @@
 
     <change-notes>
         <![CDATA[
+        <p>1.13.0</p>
+        <ul>
+          <li>Removed config file specification from command line arguments. This will allow using nested configurations and other SwiftLint configuration options.</li>
+          <li>Switched to Kotlin.</li>
+          <li>Added basic completion for SwiftLint comments. Thanks to https://github.com/MontakOleg.</li>
+          <li>Updated per-project configuration.</li>
+        </ul>
+        <p>1.12.0</p>
+        <ul>
+          <li>Added per-project swiftlint path configuration. Thanks to https://github.com/MontakOleg.</li>
+        </ul>
         <p>1.11.0</p>
         <ul>
           <li>Added ability to use separate configuration files in different project directories.</li>
@@ -35,17 +46,15 @@
       ]]>
     </change-notes>
 
-    <idea-version since-build="172"/>
+    <idea-version since-build="201.6668.113"/>
 
     <depends>com.intellij.modules.cidr.lang</depends>
     <depends>com.intellij.modules.swift.lang</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <globalInspection displayName="SwiftLint" groupName="Swift" implementationClass="com.lonelybytes.swiftlint.SwiftLintInspection"/>
-        <applicationConfigurable instance="com.lonelybytes.swiftlint.Configuration"
-                                 displayName="SwiftLint"
-                                 groupId="tools"/>
+        <projectConfigurable instance="com.lonelybytes.swiftlint.Configuration" displayName="SwiftLint" groupId="tools"/>
         <externalAnnotator language="Swift" implementationClass="com.lonelybytes.swiftlint.annotator.SwiftLintHighlightingAnnotator"/>
-        <completion.contributor language="Swift" implementationClass="com.lonelybytes.swiftlint.completion.SwiftlintCompletionContributor" />
+        <completion.contributor language="Swift" implementationClass="com.lonelybytes.swiftlint.completion.SwiftLintCompletionContributor" />
     </extensions>
 </idea-plugin>
