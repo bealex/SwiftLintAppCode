@@ -64,7 +64,7 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
         }
 
         val toolPath: String = SwiftLintInspection.State(collectedInfo.file.project).projectOrGlobalSwiftLintPath
-        val runDirectoryPath: String = (swiftLintConfig?.configPath ?: swiftLintConfig?.project?.basePath) ?: collectedInfo.path
+        val runDirectoryPath: String = (swiftLintConfig?.configPath?.substringBeforeLast("/") ?: swiftLintConfig?.project?.basePath) ?: collectedInfo.path.substringBeforeLast("/")
         val runDirectory = File(runDirectoryPath)
 
         val lines: MutableList<AnnotatorResult.Line> = ArrayList()
@@ -452,7 +452,7 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
         val action = Runnable {
             ApplicationManager.getApplication().runWriteAction {
                 try {
-                    val runDirectoryPath: String = (swiftLintConfig?.configPath ?: swiftLintConfig?.project?.basePath) ?: filePath
+                    val runDirectoryPath: String = (swiftLintConfig?.configPath?.substringBeforeLast("/") ?: swiftLintConfig?.project?.basePath) ?: filePath.substringBeforeLast("/")
                     val runDirectory = File(runDirectoryPath)
 
                     SWIFT_LINT.executeSwiftLint(toolPath, "autocorrect", swiftLintConfig, filePath, runDirectory)
