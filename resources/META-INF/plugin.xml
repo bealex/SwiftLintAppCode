@@ -4,7 +4,7 @@
     <id>com.appcodeplugins.swiftlint</id>
 
     <name>SwiftLint</name>
-    <version>1.13.0</version>
+    <version>1.13.1</version>
     <vendor email="alex@lonelybytes.com" url="https://github.com/bealex/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[
@@ -20,6 +20,10 @@
 
     <change-notes>
         <![CDATA[
+        <p>1.13.1</p>
+        <ul>
+          <li>Fixed problem with configuration file search.</li>
+        </ul>
         <p>1.13.0</p>
         <ul>
           <li>Removed config file specification from command line arguments. This will allow using nested configurations and other SwiftLint configuration options.</li>

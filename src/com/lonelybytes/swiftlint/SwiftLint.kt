@@ -11,14 +11,14 @@ import java.io.InputStreamReader
 
 class SwiftLint {
     @Throws(IOException::class, InterruptedException::class)
-    fun executeSwiftLint(toolPath: String, aAction: String, aConfig: SwiftLintConfig?, aFilePath: String): List<String> {
+    fun executeSwiftLint(toolPath: String, aAction: String, aConfig: SwiftLintConfig?, aFilePath: String, aRunDirectory: File): List<String> {
         aConfig ?: return emptyList()
 
         if (aAction == "autocorrect") {
-            processAutocorrect(toolPath, aFilePath)
+            processAutocorrect(toolPath, aFilePath, aRunDirectory)
         } else {
             if (aConfig.shouldBeLinted(aFilePath, true)) {
-                return processAsApp(toolPath, aAction, aFilePath)
+                return processAsApp(toolPath, aAction, aFilePath, aRunDirectory)
             }
         }
 
@@ -37,7 +37,7 @@ class SwiftLint {
     }
 
     @Throws(IOException::class, InterruptedException::class)
-    private fun processAutocorrect(aToolPath: String, aFilePath: String) {
+    private fun processAutocorrect(aToolPath: String, aFilePath: String, aRunDirectory: File) {
         val params = mutableListOf(
                 aToolPath,
                 "autocorrect",
@@ -45,13 +45,12 @@ class SwiftLint {
                 "--path", aFilePath
         )
 
-        val dir = File(aFilePath.substringBeforeLast("/"))
-        val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), dir)
+        val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), aRunDirectory)
         process.waitFor()
     }
 
     @Throws(IOException::class, InterruptedException::class)
-    private fun processAsApp(toolPath: String, aAction: String, aFilePath: String): List<String> {
+    private fun processAsApp(toolPath: String, aAction: String, aFilePath: String, aRunDirectory: File): List<String> {
         val params: MutableList<String> = mutableListOf(
                 toolPath,
                 aAction,
@@ -60,8 +59,7 @@ class SwiftLint {
                 "--path", aFilePath
         )
 
-        val dir = File(aFilePath.substringBeforeLast("/"))
-        val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), dir)
+        val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), aRunDirectory)
         process.waitFor()
         return processSwiftLintOutput(process)
     }

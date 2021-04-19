@@ -10,7 +10,7 @@ import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.util.*
 
-class SwiftLintConfig(aProject: Project, aConfigPath: String?) {
+class SwiftLintConfig(val project: Project, val configPath: String?) {
     class Config(aPath: String) {
         var file: File = File(aPath)
         var excludedDirectories: List<String> = emptyList()
@@ -118,10 +118,10 @@ class SwiftLintConfig(aProject: Project, aConfigPath: String?) {
     }
 
     init {
-        val projectPath = aProject.basePath
-        var path = aConfigPath
+        val projectPath = project.basePath
+        var path = configPath
         if (path == null || !File(path).exists()) {
-            path = swiftLintConfigPath(aProject, 6)
+            path = swiftLintConfigPath(project, 6)
         }
         if (path != null) {
             _configs[projectPath] = Config(path)

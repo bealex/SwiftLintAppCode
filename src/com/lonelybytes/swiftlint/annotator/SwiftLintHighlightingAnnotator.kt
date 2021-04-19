@@ -32,6 +32,7 @@ import com.lonelybytes.swiftlint.Configuration
 import com.lonelybytes.swiftlint.SwiftLint
 import com.lonelybytes.swiftlint.SwiftLintConfig
 import com.lonelybytes.swiftlint.SwiftLintInspection
+import java.io.File
 import java.io.IOException
 import java.util.*
 import java.util.function.Consumer
@@ -63,9 +64,13 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
         }
 
         val toolPath: String = SwiftLintInspection.State(collectedInfo.file.project).projectOrGlobalSwiftLintPath
+        val runDirectoryPath: String = (swiftLintConfig?.configPath ?: swiftLintConfig?.project?.basePath) ?: collectedInfo.path
+        val runDirectory = File(runDirectoryPath)
+
         val lines: MutableList<AnnotatorResult.Line> = ArrayList()
         try {
-            val lintedErrors: List<String> = SWIFT_LINT.executeSwiftLint(toolPath, "lint", swiftLintConfig, collectedInfo.path)
+            val lintedErrors: List<String> =
+                    SWIFT_LINT.executeSwiftLint(toolPath, "lint", swiftLintConfig, collectedInfo.path, runDirectory)
             if (lintedErrors.isNotEmpty()) {
                 for (line in lintedErrors) {
                     var lineLocal = line
@@ -447,7 +452,10 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
         val action = Runnable {
             ApplicationManager.getApplication().runWriteAction {
                 try {
-                    SWIFT_LINT.executeSwiftLint(toolPath, "autocorrect", swiftLintConfig, filePath)
+                    val runDirectoryPath: String = (swiftLintConfig?.configPath ?: swiftLintConfig?.project?.basePath) ?: filePath
+                    val runDirectory = File(runDirectoryPath)
+
+                    SWIFT_LINT.executeSwiftLint(toolPath, "autocorrect", swiftLintConfig, filePath, runDirectory)
                     ApplicationManager.getApplication().invokeLater {
                         ApplicationManager.getApplication().runWriteAction {
                             file.virtualFile.refresh(false, false)
