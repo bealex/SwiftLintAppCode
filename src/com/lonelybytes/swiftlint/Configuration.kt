@@ -1,10 +1,16 @@
 package com.lonelybytes.swiftlint
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
+import com.intellij.codeInsight.daemon.HighlightDisplayKey
+import com.intellij.codeInspection.InspectionManager
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ex.ProjectManagerEx
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.profile.codeInspection.InspectionProfileManager
+import com.intellij.psi.PsiElement
+import com.intellij.psi.search.scope.packageSet.NamedScope
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.panels.HorizontalLayout
 import com.intellij.ui.components.panels.VerticalLayout
@@ -15,7 +21,7 @@ import javax.swing.event.ChangeListener
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
-class Configuration(project: Project) : Configurable {
+class Configuration(val project: Project) : Configurable {
     private var modified = false
 
     private var swiftLintPathBrowser: TextFieldWithBrowseButton = TextFieldWithBrowseButton(JTextField(30))
@@ -26,19 +32,10 @@ class Configuration(project: Project) : Configurable {
     private val state: SwiftLintInspection.State = SwiftLintInspection.State(project)
 
     @Nls
-    override fun getDisplayName(): String {
-        return "SwiftLint"
-    }
-
-    override fun getHelpTopic(): String? {
-        return null
-    }
+    override fun getDisplayName(): String = "SwiftLint"
+    override fun getHelpTopic(): String? = null
 
     override fun createComponent(): JComponent {
-        val projectManager = ProjectManagerEx.getInstanceEx()
-        val openProjects = projectManager.openProjects
-        val project = if (openProjects.isEmpty()) projectManager.defaultProject else openProjects[0]
-
         val panel = JPanel(VerticalLayout(2, SwingConstants.LEFT))
 
         // Global path
@@ -74,6 +71,7 @@ class Configuration(project: Project) : Configurable {
         state.isQuickFixEnabled = quickFixCheckbox.isSelected
         state.isDisableWhenNoConfigPresent = disableWhenNoConfigPresentCheckbox.isSelected
         modified = false
+        DaemonCodeAnalyzer.getInstance(project).restart()
     }
 
     override fun reset() {

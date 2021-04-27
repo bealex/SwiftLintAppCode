@@ -1,5 +1,6 @@
 package com.lonelybytes.swiftlint.annotator
 
+import com.intellij.codeInsight.daemon.HighlightDisplayKey
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.lang.ASTNode
@@ -19,7 +20,9 @@ import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.profile.codeInspection.InspectionProfileManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
@@ -39,6 +42,14 @@ import java.util.function.Consumer
 
 class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, AnnotatorResult?>() {
     override fun collectInformation(aFile: PsiFile): InitialInfo? {
+        return collectInformation(aFile, false)
+    }
+
+    fun collectInformation(aFile: PsiFile, ignoreInspectionSetting: Boolean): InitialInfo? {
+        val enabled = InspectionProfileManager.getInstance(aFile.project)
+                .currentProfile.isToolEnabled(HighlightDisplayKey.find(SHORT_NAME))
+        if (!enabled && !ignoreInspectionSetting) return null
+
         if (!aFile.isWritable) return null
         val filePath: String = aFile.virtualFile.canonicalPath ?: return null
         val document: Document = FileDocumentManager.getInstance().getDocument(aFile.virtualFile) ?: return null

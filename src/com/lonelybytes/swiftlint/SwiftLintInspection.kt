@@ -4,6 +4,7 @@ import com.intellij.codeHighlighting.HighlightDisplayLevel
 import com.intellij.codeInsight.daemon.impl.DaemonProgressIndicator
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInspection.*
+import com.intellij.codeInspection.ex.ExternalAnnotatorBatchInspection
 import com.intellij.execution.configurations.PathEnvironmentVariableUtil
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.project.Project
@@ -60,22 +61,19 @@ class SwiftLintInspection : GlobalSimpleInspectionTool() {
         }
     }
 
-    override fun getDefaultLevel(): HighlightDisplayLevel {
-        return HighlightDisplayLevel.WARNING
-    }
-
+    override fun getDefaultLevel(): HighlightDisplayLevel = HighlightDisplayLevel.WARNING
     @Nls
-    override fun getGroupDisplayName(): String {
-        return GROUP_NAME_SWIFT
-    }
+    override fun getGroupDisplayName(): String = GROUP_NAME_SWIFT
+    override fun getShortName(): String = SHORT_NAME
+    override fun isEnabledByDefault(): Boolean = true
 
-    override fun getShortName(): String {
-        return SHORT_NAME
-    }
-
-    override fun checkFile(originalFile: PsiFile, manager: InspectionManager,
-                           problemsHolder: ProblemsHolder, globalContext: GlobalInspectionContext,
-                           problemDescriptionsProcessor: ProblemDescriptionsProcessor) {
+    override fun checkFile(
+        originalFile: PsiFile,
+        manager: InspectionManager,
+        problemsHolder: ProblemsHolder,
+        globalContext: GlobalInspectionContext,
+        problemDescriptionsProcessor: ProblemDescriptionsProcessor
+    ) {
         for (pair in runGeneralHighlighting(originalFile)) {
             val file = pair.first!!
             val info = pair.second!!
@@ -102,13 +100,14 @@ class SwiftLintInspection : GlobalSimpleInspectionTool() {
 
     private class MyPsiElementVisitor : PsiElementVisitor() {
         val result: MutableList<Pair<PsiFile?, HighlightInfo?>> = ArrayList()
+
         override fun visitFile(file: PsiFile) {
             file.virtualFile ?: return
 
             val progress = DaemonProgressIndicator()
             progress.start()
             try {
-                val initialInfo = ANNOTATOR.collectInformation(file)
+                val initialInfo = ANNOTATOR.collectInformation(file, true)
                 var annotatorResult: AnnotatorResult? = null
                 if (initialInfo != null) {
                     annotatorResult = ANNOTATOR.doAnnotate(initialInfo)
