@@ -4,7 +4,7 @@
     <id>com.appcodeplugins.swiftlint</id>
 
     <name>SwiftLint</name>
-    <version>1.13.2</version>
+    <version>1.13.3</version>
     <vendor email="alex@lonelybytes.com" url="https://github.com/bealex/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[
@@ -20,6 +20,10 @@
 
     <change-notes>
         <![CDATA[
+        <p>1.13.3</p>
+        <ul>
+          <li>Fixed problem with not using configuration file right after it was added (file change needed previously).</li>
+        </ul>
         <p>1.13.2</p>
         <ul>
           <li>Fixed problem with inspection enabling/disabling.</li>
@@ -66,4 +70,7 @@
         <externalAnnotator language="Swift" implementationClass="com.lonelybytes.swiftlint.annotator.SwiftLintHighlightingAnnotator"/>
         <completion.contributor language="Swift" implementationClass="com.lonelybytes.swiftlint.completion.SwiftLintCompletionContributor" />
     </extensions>
+    <projectListeners>
+        <listener class="com.lonelybytes.swiftlint.fileWatcher.ConfigurationFileWatcher" topic="com.intellij.openapi.vfs.newvfs.BulkFileListener" />
+    </projectListeners>
 </idea-plugin>
