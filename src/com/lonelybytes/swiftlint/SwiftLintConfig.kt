@@ -82,12 +82,16 @@ class SwiftLintConfig(val project: Project, val configPath: String?) {
     companion object {
         const val FILE_NAME = ".swiftlint.yml"
 
-        fun swiftLintConfigPath(aProject: Project, aDepthToLookAt: Int): String? {
+        fun swiftLintConfigPath(aProject: Project, aFilterFile: VirtualFile, aDepthToLookAt: Int): String? {
+            val filterFilePath = aFilterFile.canonicalPath ?: ""
+
             val projectRootManager = ProjectRootManager.getInstance(aProject)
             val roots = projectRootManager.contentSourceRoots
             for (root in roots) {
                 val configFile = root.findChild(FILE_NAME)
-                if (configFile != null) {
+                val configFileContainingDirectoryPath = configFile?.parent?.canonicalPath ?: "?"
+
+                if (configFile != null && filterFilePath.contains(configFileContainingDirectoryPath)) {
                     return configFile.canonicalPath
                 }
             }
@@ -102,7 +106,7 @@ class SwiftLintConfig(val project: Project, val configPath: String?) {
                 val file = filesToLookAt.removeAt(0)
                 if (file._depth > aDepthToLookAt) { break }
 
-                if (file._file.findChild(FILE_NAME) != null) {
+                if (file._file.findChild(FILE_NAME) != null && filterFilePath.contains(file._file.toString())) {
                     return file._file.toString() + "/" + FILE_NAME
                 } else {
                     filesToLookAt.addAll(
@@ -118,13 +122,13 @@ class SwiftLintConfig(val project: Project, val configPath: String?) {
     }
 
     init {
-        val projectPath = project.basePath
-        var path = configPath
-        if (path == null || !File(path).exists()) {
-            path = swiftLintConfigPath(project, 6)
-        }
-        if (path != null) {
-            _configs[projectPath] = Config(path)
-        }
+//        val projectPath = project.basePath
+//        var path = configPath
+//        if (path == null || !File(path).exists()) {
+//            path = swiftLintConfigPath(project, 6)
+//        }
+//        if (path != null) {
+//            _configs[projectPath] = Config(path)
+//        }
     }
 }

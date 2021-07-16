@@ -73,7 +73,7 @@ class SwiftLint {
             errorLines = BufferedReader(InputStreamReader(aProcess.errorStream))
                     .readLines()
                     .filter {
-                        val testLine = it.toLowerCase()
+                        val testLine = it.lowercase()
                         testLine.contains("error:") || testLine.contains("warning:") || testLine.contains("invalid:") || testLine.contains("unrecognized arguments:")
                     }
         } catch (e: IOException) {

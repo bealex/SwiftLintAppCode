@@ -1,16 +1,10 @@
 package com.lonelybytes.swiftlint
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
-import com.intellij.codeInsight.daemon.HighlightDisplayKey
-import com.intellij.codeInspection.InspectionManager
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ex.ProjectManagerEx
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
-import com.intellij.profile.codeInspection.InspectionProfileManager
-import com.intellij.psi.PsiElement
-import com.intellij.psi.search.scope.packageSet.NamedScope
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.panels.HorizontalLayout
 import com.intellij.ui.components.panels.VerticalLayout

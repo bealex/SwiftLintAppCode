@@ -55,7 +55,7 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
         val document: Document = FileDocumentManager.getInstance().getDocument(aFile.virtualFile) ?: return null
         if (document.lineCount == 0 || !shouldCheck(aFile)) return null
 
-        val swiftLintConfigPath: String? = SwiftLintConfig.swiftLintConfigPath(aFile.project, 5)
+        val swiftLintConfigPath: String? = SwiftLintConfig.swiftLintConfigPath(aFile.project, aFile.virtualFile, 5)
         if (SwiftLintInspection.State(aFile.project).isDisableWhenNoConfigPresent && swiftLintConfigPath == null) {
             return null
         }
@@ -492,7 +492,7 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
         private const val QUICK_FIX_NAME = "Run swiftlint autocorrect"
 
         private fun severityFromSwiftLint(severity: String): HighlightSeverity {
-            return when (severity.trim { it <= ' ' }.toLowerCase()) {
+            return when (severity.trim { it <= ' ' }.lowercase()) {
                 "error" -> HighlightSeverity.ERROR
                 "warning" -> HighlightSeverity.WARNING
                 "style", "performance", "portability" -> HighlightSeverity.WEAK_WARNING

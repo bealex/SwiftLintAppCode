@@ -12,7 +12,6 @@ import com.intellij.util.ProcessingContext
 import com.lonelybytes.swiftlint.Configuration
 import com.lonelybytes.swiftlint.SwiftLint
 import com.lonelybytes.swiftlint.SwiftLintInspection
-import org.codehaus.plexus.util.StringUtils
 import java.io.IOException
 
 class SwiftLintCompletionContributor : CompletionContributor() {
@@ -86,7 +85,7 @@ class SwiftLintCompletionContributor : CompletionContributor() {
 
                 val prefix = resultSet.prefixMatcher.prefix
                 val prefixStart = parameters.offset - prefix.length - position.textRange.startOffset
-                val textBeforePrefix = StringUtils.stripStart(text.substring(0, prefixStart).substring(2), null)
+                val textBeforePrefix = text.substring(0, prefixStart).substring(2).trimStart()
 
                 when {
                     swiftlintActionsWithModifiers.any { textBeforePrefix.startsWith(it) } -> {

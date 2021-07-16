@@ -4,7 +4,6 @@ import com.intellij.codeHighlighting.HighlightDisplayLevel
 import com.intellij.codeInsight.daemon.impl.DaemonProgressIndicator
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.codeInspection.*
-import com.intellij.codeInspection.ex.ExternalAnnotatorBatchInspection
 import com.intellij.execution.configurations.PathEnvironmentVariableUtil
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.project.Project
@@ -16,7 +15,6 @@ import com.lonelybytes.swiftlint.annotator.AnnotatorResult
 import com.lonelybytes.swiftlint.annotator.SwiftLintHighlightingAnnotator
 import org.jetbrains.annotations.Nls
 import java.io.IOException
-import java.util.*
 
 class SwiftLintInspection : GlobalSimpleInspectionTool() {
     class State(private val project: Project) {
