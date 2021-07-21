@@ -11,18 +11,13 @@ import java.io.InputStreamReader
 
 class SwiftLint {
     @Throws(IOException::class, InterruptedException::class)
-    fun executeSwiftLint(toolPath: String, aAction: String, aConfig: SwiftLintConfig?, aFilePath: String, aRunDirectory: File): List<String> {
-        aConfig ?: return emptyList()
-
-        if (aAction == "autocorrect") {
+    fun executeSwiftLint(toolPath: String, aAction: String, aFilePath: String, aRunDirectory: File): List<String> {
+        return if (aAction == "autocorrect") {
             processAutocorrect(toolPath, aFilePath, aRunDirectory)
+            emptyList()
         } else {
-            if (aConfig.shouldBeLinted(aFilePath, true)) {
-                return processAsApp(toolPath, aAction, aFilePath, aRunDirectory)
-            }
+            processAsApp(toolPath, aAction, aFilePath, aRunDirectory)
         }
-
-         return emptyList()
     }
 
     @Throws(IOException::class, InterruptedException::class)

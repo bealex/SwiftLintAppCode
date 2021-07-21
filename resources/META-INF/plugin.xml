@@ -4,7 +4,7 @@
     <id>com.appcodeplugins.swiftlint</id>
 
     <name>SwiftLint</name>
-    <version>1.13.4</version>
+    <version>1.13.5</version>
     <vendor email="alex@lonelybytes.com" url="https://github.com/bealex/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[
@@ -20,9 +20,9 @@
 
     <change-notes>
         <![CDATA[
-        <p>1.13.4</p>
+        <p>1.13.4, 1.13.5</p>
         <ul>
-          <li>Fixed problem with configuration file searching in projects with Swift Package Manager.</li>
+          <li>Fixed problem with configuration file searching in projects with Swift Package Manager and with multiple projects opened.</li>
         </ul>
         <p>1.13.3</p>
         <ul>

@@ -20,7 +20,6 @@ import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.util.TextRange
-import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.profile.codeInspection.InspectionProfileManager
 import com.intellij.psi.PsiElement
@@ -55,15 +54,12 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
         val document: Document = FileDocumentManager.getInstance().getDocument(aFile.virtualFile) ?: return null
         if (document.lineCount == 0 || !shouldCheck(aFile)) return null
 
-        val swiftLintConfigPath: String? = SwiftLintConfig.swiftLintConfigPath(aFile.project, aFile.virtualFile, 5)
+        val swiftLintConfigPath: String? = SwiftLintConfig.swiftLintConfigPath(aFile.project, aFile.virtualFile)
         if (SwiftLintInspection.State(aFile.project).isDisableWhenNoConfigPresent && swiftLintConfigPath == null) {
             return null
         }
 
-        if (swiftLintConfig == null) {
-            swiftLintConfig = SwiftLintConfig(aFile.project, swiftLintConfigPath)
-        }
-        return InitialInfo(aFile, filePath, document, true)
+        return InitialInfo(aFile, filePath, document, true, swiftLintConfigPath)
     }
 
     override fun doAnnotate(collectedInfo: InitialInfo?): AnnotatorResult? {
@@ -75,13 +71,12 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
         }
 
         val toolPath: String = SwiftLintInspection.State(collectedInfo.file.project).projectOrGlobalSwiftLintPath
-        val runDirectoryPath: String = (swiftLintConfig?.configPath?.substringBeforeLast("/") ?: swiftLintConfig?.project?.basePath) ?: collectedInfo.path.substringBeforeLast("/")
+        val runDirectoryPath: String = collectedInfo.runDirectoryFromConfigPath ?: collectedInfo.path.substringBeforeLast("/")
         val runDirectory = File(runDirectoryPath)
 
         val lines: MutableList<AnnotatorResult.Line> = ArrayList()
         try {
-            val lintedErrors: List<String> =
-                    SWIFT_LINT.executeSwiftLint(toolPath, "lint", swiftLintConfig, collectedInfo.path, runDirectory)
+            val lintedErrors: List<String> = SWIFT_LINT.executeSwiftLint(toolPath, "lint", collectedInfo.path, runDirectory)
             if (lintedErrors.isNotEmpty()) {
                 for (line in lintedErrors) {
                     var lineLocal = line
@@ -454,22 +449,22 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
     }
 
     // QuickFix
-    private fun executeSwiftLintQuickFix(file: PsiFile) {
-        val virtualFile: VirtualFile = file.virtualFile
-        val toolPath: String = SwiftLintInspection.State(file.project).projectOrGlobalSwiftLintPath
+    private fun executeSwiftLintQuickFix(aFile: PsiFile) {
+        val virtualFile: VirtualFile = aFile.virtualFile
+        val toolPath: String = SwiftLintInspection.State(aFile.project).projectOrGlobalSwiftLintPath
         val filePath: String = virtualFile.canonicalPath ?: return
         val name = "$SWIFT_LINT $QUICK_FIX_NAME"
         val commandProcessor = CommandProcessor.getInstance()
         val action = Runnable {
             ApplicationManager.getApplication().runWriteAction {
                 try {
-                    val runDirectoryPath: String = (swiftLintConfig?.configPath?.substringBeforeLast("/") ?: swiftLintConfig?.project?.basePath) ?: filePath.substringBeforeLast("/")
+                    val runDirectoryPath: String = SwiftLintConfig.swiftLintConfigPath(aFile.project, aFile.virtualFile) ?: filePath.substringBeforeLast("/")
                     val runDirectory = File(runDirectoryPath)
 
-                    SWIFT_LINT.executeSwiftLint(toolPath, "autocorrect", swiftLintConfig, filePath, runDirectory)
+                    SWIFT_LINT.executeSwiftLint(toolPath, "autocorrect", filePath, runDirectory)
                     ApplicationManager.getApplication().invokeLater {
                         ApplicationManager.getApplication().runWriteAction {
-                            file.virtualFile.refresh(false, false)
+                            aFile.virtualFile.refresh(false, false)
                         }
                     }
                 } catch (e: Exception) {
@@ -482,11 +477,10 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
                 }
             }
         }
-        commandProcessor.executeCommand(file.project, action, name, ActionGroup.EMPTY_GROUP)
+        commandProcessor.executeCommand(aFile.project, action, name, ActionGroup.EMPTY_GROUP)
     }
 
     companion object {
-        private var swiftLintConfig: SwiftLintConfig? = null
         private val SWIFT_LINT: SwiftLint = SwiftLint()
         private const val SHORT_NAME = "SwiftLint"
         private const val QUICK_FIX_NAME = "Run swiftlint autocorrect"
