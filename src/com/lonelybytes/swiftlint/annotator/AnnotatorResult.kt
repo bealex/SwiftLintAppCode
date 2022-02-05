@@ -7,12 +7,16 @@ class AnnotatorResult internal constructor(var lines: List<Line>) {
         // file,line,character,severity,type,reason,rule_id,
         @JvmField
         var line: Int
+
         @JvmField
         var column: Int
+
         @JvmField
         var rule: String
+
         @JvmField
         var severity: String
+
         @JvmField
         var message: String
 

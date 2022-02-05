@@ -36,7 +36,6 @@ import com.lonelybytes.swiftlint.SwiftLintConfig
 import com.lonelybytes.swiftlint.SwiftLintInspection
 import java.io.File
 import java.io.IOException
-import java.util.*
 import java.util.function.Consumer
 
 class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, AnnotatorResult?>() {
@@ -45,19 +44,28 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
     }
 
     fun collectInformation(aFile: PsiFile, ignoreInspectionSetting: Boolean): InitialInfo? {
-        val enabled = InspectionProfileManager.getInstance(aFile.project)
-                .currentProfile.isToolEnabled(HighlightDisplayKey.find(SHORT_NAME))
-        if (!enabled && !ignoreInspectionSetting) return null
+//        println("\n --> File: " + aFile.virtualFile.canonicalPath)
+
+        val enabledInProjectSettings = InspectionProfileManager.getInstance(aFile.project)
+            .currentProfile.isToolEnabled(HighlightDisplayKey.find(SHORT_NAME))
+        if (!enabledInProjectSettings && !ignoreInspectionSetting) return null
+
+//        println("\n --> Enabled for file: " + aFile.virtualFile.canonicalPath)
 
         if (!aFile.isWritable) return null
         val filePath: String = aFile.virtualFile.canonicalPath ?: return null
         val document: Document = FileDocumentManager.getInstance().getDocument(aFile.virtualFile) ?: return null
         if (document.lineCount == 0 || !shouldCheck(aFile)) return null
 
+//        println(" --> Easy checks done for: " + aFile.virtualFile.canonicalPath)
+
         val swiftLintConfigPath: String? = SwiftLintConfig.swiftLintConfigPath(aFile.project, aFile.virtualFile)
+//        println(" --> Config path: '" + swiftLintConfigPath + "' for: " + aFile.virtualFile.canonicalPath)
         if (SwiftLintInspection.State(aFile.project).isDisableWhenNoConfigPresent && swiftLintConfigPath == null) {
             return null
         }
+
+//        println(" --> Will Lint! " + aFile.virtualFile.canonicalPath)
 
         return InitialInfo(aFile, filePath, document, true, swiftLintConfigPath)
     }
@@ -71,12 +79,14 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
         }
 
         val toolPath: String = SwiftLintInspection.State(collectedInfo.file.project).projectOrGlobalSwiftLintPath
-        val runDirectoryPath: String = collectedInfo.runDirectoryFromConfigPath ?: collectedInfo.path.substringBeforeLast("/")
+        val runDirectoryPath: String =
+            collectedInfo.runDirectoryFromConfigPath ?: collectedInfo.path.substringBeforeLast("/")
         val runDirectory = File(runDirectoryPath)
 
         val lines: MutableList<AnnotatorResult.Line> = ArrayList()
         try {
-            val lintedErrors: List<String> = SWIFT_LINT.executeSwiftLint(toolPath, "lint", collectedInfo.path, runDirectory)
+            val lintedErrors: List<String> =
+                SWIFT_LINT.executeSwiftLint(toolPath, "lint", collectedInfo.path, runDirectory)
             if (lintedErrors.isNotEmpty()) {
                 for (line in lintedErrors) {
                     var lineLocal = line
@@ -86,8 +96,8 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
                         newLine = lineLocal.replace("\"(.*),(.*)\"".toRegex(), "\"$1|||$2\"")
                     }
                     var lineParts: List<String> = lineLocal
-                            .split("\\s*,\\s*".toRegex())
-                            .map { it.replace("|||", ",") }
+                        .split("\\s*,\\s*".toRegex())
+                        .map { it.replace("|||", ",") }
                     if (lineParts.isEmpty() || !lineLocal.contains(",") || lineLocal.trim { it <= ' ' }.isEmpty()) {
                         continue
                     }
@@ -103,12 +113,33 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
             }
         } catch (ex: IOException) {
             if (ex.message!!.contains("No such file or directory") || ex.message!!.contains("error=2")) {
-                Notifications.Bus.notify(Notification(Configuration.KEY_SWIFTLINT, "Error", "Can't find swiftlint utility here:\n$toolPath\nPlease check the path in settings.", NotificationType.ERROR))
+                Notifications.Bus.notify(
+                    Notification(
+                        Configuration.KEY_SWIFTLINT,
+                        "Error",
+                        "Can't find swiftlint utility here:\n$toolPath\nPlease check the path in settings.",
+                        NotificationType.ERROR
+                    )
+                )
             } else {
-                Notifications.Bus.notify(Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + ex.message, NotificationType.ERROR))
+                Notifications.Bus.notify(
+                    Notification(
+                        Configuration.KEY_SWIFTLINT,
+                        "Error",
+                        "IOException: " + ex.message,
+                        NotificationType.ERROR
+                    )
+                )
             }
         } catch (ex: Exception) {
-            Notifications.Bus.notify(Notification(Configuration.KEY_SWIFTLINT, "Error", "Exception: " + ex.message, NotificationType.INFORMATION))
+            Notifications.Bus.notify(
+                Notification(
+                    Configuration.KEY_SWIFTLINT,
+                    "Error",
+                    "Exception: " + ex.message,
+                    NotificationType.INFORMATION
+                )
+            )
             ex.printStackTrace()
         }
         return AnnotatorResult(lines)
@@ -119,7 +150,7 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
             return emptyList<HighlightInfo>()
         }
         val document: Document = FileDocumentManager.getInstance().getDocument(aFile.virtualFile)
-                ?: return emptyList<HighlightInfo>()
+            ?: return emptyList<HighlightInfo>()
         val result: MutableList<HighlightInfo?> = ArrayList()
         for (line in aResult.lines) {
             line.fixPositionInDocument(document)
@@ -131,32 +162,33 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
     override fun apply(aFile: PsiFile, annotationResult: AnnotatorResult?, aHolder: AnnotationHolder) {
         highlightInfos(aFile, annotationResult).forEach(Consumer { aHighlightInfo: HighlightInfo? ->
             if (aHighlightInfo != null) {
-                val highlightRange: TextRange = TextRange.from(aHighlightInfo.startOffset, aHighlightInfo.endOffset - aHighlightInfo.startOffset)
+                val highlightRange: TextRange =
+                    TextRange.from(aHighlightInfo.startOffset, aHighlightInfo.endOffset - aHighlightInfo.startOffset)
                 var annotationBuilder = aHolder
-                        .newAnnotation(aHighlightInfo.severity, aHighlightInfo.description)
-                        .range(highlightRange)
+                    .newAnnotation(aHighlightInfo.severity, aHighlightInfo.description)
+                    .range(highlightRange)
                 if (SwiftLintInspection.State(aFile.project).isQuickFixEnabled) {
                     annotationBuilder
-                            .withFix(object : IntentionAction {
-                                override fun getText(): String {
-                                    return QUICK_FIX_NAME
-                                }
+                        .withFix(object : IntentionAction {
+                            override fun getText(): String {
+                                return QUICK_FIX_NAME
+                            }
 
-                                override fun getFamilyName(): String {
-                                    return SHORT_NAME
-                                }
+                            override fun getFamilyName(): String {
+                                return SHORT_NAME
+                            }
 
-                                override fun isAvailable(project: Project, editor: Editor, file: PsiFile): Boolean {
-                                    return true
-                                }
+                            override fun isAvailable(project: Project, editor: Editor, file: PsiFile): Boolean {
+                                return true
+                            }
 
-                                @Throws(IncorrectOperationException::class)
-                                override operator fun invoke(project: Project, editor: Editor, file: PsiFile) {
-                                    executeSwiftLintQuickFix(file)
-                                }
+                            @Throws(IncorrectOperationException::class)
+                            override operator fun invoke(project: Project, editor: Editor, file: PsiFile) {
+                                executeSwiftLintQuickFix(file)
+                            }
 
-                                override fun startInWriteAction(): Boolean = false
-                            }).also { annotationBuilder = it }
+                            override fun startInWriteAction(): Boolean = false
+                        }).also { annotationBuilder = it }
                 }
                 annotationBuilder.create()
             }
@@ -168,7 +200,10 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
         val lineNumber = aLine.line
         val columnNumber = aLine.column
         var startOffset = aDocument.getLineStartOffset(lineNumber)
-        val endOffset = if (lineNumber < aDocument.lineCount - 1) aDocument.getLineStartOffset(lineNumber + 1) else aDocument.getLineEndOffset(lineNumber)
+        val endOffset =
+            if (lineNumber < aDocument.lineCount - 1) aDocument.getLineStartOffset(lineNumber + 1) else aDocument.getLineEndOffset(
+                lineNumber
+            )
         var range: TextRange = TextRange.create(startOffset, endOffset)
         val weHaveAColumn = columnNumber > 0
         if (weHaveAColumn) {
@@ -176,7 +211,7 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
         }
         val chars = aDocument.immutableCharSequence
         if (chars.length <= startOffset) {
-            // This can happen when we browsing a file after it has been edited (some lines removed for example)
+            // This can happen when we are browsing a file after it has been edited (some lines removed for example)
             return null
         }
         val startChar = chars[startOffset]
@@ -215,10 +250,10 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
                         "type_name" -> {
                             aFile.findElementAt(startOffset)?.let {
                                 range =
-                                        if ((it as LeafPsiElement).elementType.toString() == "IDENTIFIER")
-                                            it.textRange
-                                        else
-                                            getNextTokenAtIndex(aFile, startOffset, aLine.rule) ?: range
+                                    if ((it as LeafPsiElement).elementType.toString() == "IDENTIFIER")
+                                        it.textRange
+                                    else
+                                        getNextTokenAtIndex(aFile, startOffset, aLine.rule) ?: range
                             }
                         }
                         "force_cast", "operator_whitespace", "shorthand_operator", "single_test_class", "implicitly_unwrapped_optional" -> {
@@ -228,10 +263,14 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
                             prevElement(aFile, startOffset)?.let { range = it.textRange }
                         }
                         "redundant_optional_initialization" -> {
-                            getNextTokenAtIndex(aFile, startOffset, aLine.rule)?.let { range = getNextTokenAtIndex(aFile, it.endOffset, aLine.rule) ?: range }
+                            getNextTokenAtIndex(aFile, startOffset, aLine.rule)?.let {
+                                range = getNextTokenAtIndex(aFile, it.endOffset, aLine.rule) ?: range
+                            }
                         }
                         "trailing_closure" -> {
-                            getNextTokenAtIndex(aFile, startOffset, aLine.rule)?.let { range = getNextTokenAtIndex(aFile, it.endOffset, aLine.rule) ?: range }
+                            getNextTokenAtIndex(aFile, startOffset, aLine.rule)?.let {
+                                range = getNextTokenAtIndex(aFile, it.endOffset, aLine.rule) ?: range
+                            }
                             aFile.findElementAt(range.startOffset)?.let { range = it.parent?.textRange ?: range }
                         }
                         else -> {
@@ -305,10 +344,10 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
         }
 
         return HighlightInfo
-                .newHighlightInfo(HighlightInfo.convertSeverity(severity))
-                .range(range)
-                .descriptionAndTooltip("" + aLine.message.trim { it <= ' ' } + " (SwiftLint: " + aLine.rule + ")")
-                .create()
+            .newHighlightInfo(HighlightInfo.convertSeverity(severity))
+            .range(range)
+            .descriptionAndTooltip("" + aLine.message.trim { it <= ' ' } + " (SwiftLint: " + aLine.rule + ")")
+            .create()
     }
 
     private fun getEmptyLinesAroundIndex(aDocument: Document, aInitialIndex: Int): TextRange {
@@ -354,11 +393,12 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
                     result = psiElement.textRange
                     psiElement = nextElement(file, aCharacterIndex, false)
                     if (psiElement != null) {
-                        result = if (psiElement.context != null && psiElement.context?.node?.elementType.toString() == "OPERATOR_SIGN") {
-                            psiElement.context?.node?.textRange
-                        } else {
-                            psiElement.textRange
-                        }
+                        result =
+                            if (psiElement.context != null && psiElement.context?.node?.elementType.toString() == "OPERATOR_SIGN") {
+                                psiElement.context?.node?.textRange
+                            } else {
+                                psiElement.textRange
+                            }
                     }
                 }
             }
@@ -380,9 +420,10 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
                 result = psiElement.getTextRange()
             } else {
                 while (psiElement != null &&
-                        psiElement !is SwiftVariableDeclaration &&
-                        psiElement !is SwiftFunctionDeclaration &&
-                        psiElement !is SwiftParameter) {
+                    psiElement !is SwiftVariableDeclaration &&
+                    psiElement !is SwiftFunctionDeclaration &&
+                    psiElement !is SwiftParameter
+                ) {
                     psiElement = psiElement.parent
                 }
 
@@ -415,8 +456,9 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
             var index: Int = aElementIndex + initialElement.textLength
             nextElement = aFile.findElementAt(index)
             while (nextElement != null && (nextElement === initialElement ||
-                            !isWhitespace && nextElement is PsiWhiteSpace ||
-                            isWhitespace && nextElement !is PsiWhiteSpace)) {
+                        !isWhitespace && nextElement is PsiWhiteSpace ||
+                        isWhitespace && nextElement !is PsiWhiteSpace)
+            ) {
                 index += nextElement.textLength
                 nextElement = aFile.findElementAt(index)
             }
@@ -458,7 +500,8 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
         val action = Runnable {
             ApplicationManager.getApplication().runWriteAction {
                 try {
-                    val runDirectoryPath: String = SwiftLintConfig.swiftLintConfigPath(aFile.project, aFile.virtualFile) ?: filePath.substringBeforeLast("/")
+                    val runDirectoryPath: String = SwiftLintConfig.swiftLintConfigPath(aFile.project, aFile.virtualFile)
+                        ?: filePath.substringBeforeLast("/")
                     val runDirectory = File(runDirectoryPath)
 
                     SWIFT_LINT.executeSwiftLint(toolPath, "autocorrect", filePath, runDirectory)
@@ -468,11 +511,15 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
                         }
                     }
                 } catch (e: Exception) {
-                    Notifications.Bus.notify(Notification(Configuration.KEY_SWIFTLINT, "Error",
+                    Notifications.Bus.notify(
+                        Notification(
+                            Configuration.KEY_SWIFTLINT, "Error",
                             """
                             Can't quick-fix.
                             Exception: ${e.message}
-                            """.trimIndent(), NotificationType.ERROR))
+                            """.trimIndent(), NotificationType.ERROR
+                        )
+                    )
                     e.printStackTrace()
                 }
             }

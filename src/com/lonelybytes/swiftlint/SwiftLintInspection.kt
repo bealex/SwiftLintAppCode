@@ -60,6 +60,7 @@ class SwiftLintInspection : GlobalSimpleInspectionTool() {
     }
 
     override fun getDefaultLevel(): HighlightDisplayLevel = HighlightDisplayLevel.WARNING
+
     @Nls
     override fun getGroupDisplayName(): String = GROUP_NAME_SWIFT
     override fun getShortName(): String = SHORT_NAME
@@ -85,13 +86,13 @@ class SwiftLintInspection : GlobalSimpleInspectionTool() {
             }
             if (SuppressionUtil.inspectionResultSuppressed(element, this)) continue
             GlobalInspectionUtil.createProblem(
-                    element,
-                    info,
-                    range.shiftRight(-element.node.startOffset),
-                    info.problemGroup,
-                    manager,
-                    problemDescriptionsProcessor,
-                    globalContext
+                element,
+                info,
+                range.shiftRight(-element.node.startOffset),
+                info.problemGroup,
+                manager,
+                problemDescriptionsProcessor,
+                globalContext
             )
         }
     }
@@ -111,8 +112,8 @@ class SwiftLintInspection : GlobalSimpleInspectionTool() {
                     annotatorResult = ANNOTATOR.doAnnotate(initialInfo)
                 }
                 ANNOTATOR
-                        .highlightInfos(file, annotatorResult)
-                        .forEach { result.add(Pair.create(file, it)) }
+                    .highlightInfos(file, annotatorResult)
+                    .forEach { result.add(Pair.create(file, it)) }
             } finally {
                 progress.stop()
             }

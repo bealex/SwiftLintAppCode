@@ -5,10 +5,15 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.patterns.PlatformPatterns
+import com.intellij.psi.PsiElement
 import com.intellij.util.ProcessingContext
+import com.jetbrains.swift.lang.parser.SwiftLazyEolCommentElementType
+import com.jetbrains.swift.psi.impl.children
+import com.jetbrains.swift.psi.impl.elementType
 import com.lonelybytes.swiftlint.Configuration
 import com.lonelybytes.swiftlint.SwiftLint
 import com.lonelybytes.swiftlint.SwiftLintInspection
@@ -23,34 +28,34 @@ class SwiftLintCompletionContributor : CompletionContributor() {
                 currentProject ?: return emptyList()
 
                 return SwiftLint()
-                        .getSwiftLintRulesList(SwiftLintInspection.State(currentProject).projectOrGlobalSwiftLintPath)
-                        .flatMap { line ->
-                            val parts = line.split("\\|".toRegex())
-                            if (parts.size != 9) {
+                    .getSwiftLintRulesList(SwiftLintInspection.State(currentProject).projectOrGlobalSwiftLintPath)
+                    .flatMap { line ->
+                        val parts = line.split("\\|".toRegex())
+                        if (parts.size != 9) {
+                            emptyList()
+                        } else {
+                            val ruleId = parts[1].trim { it <= ' ' }
+                            val isOptIn = parts[2].trim { it <= ' ' }
+
+                            // Skip header line
+                            if (ruleId == "identifier" && isOptIn == "opt-in") {
                                 emptyList()
                             } else {
-                                val ruleId = parts[1].trim { it <= ' ' }
-                                val isOptIn = parts[2].trim { it <= ' ' }
-
-                                // Skip header line
-                                if (ruleId == "identifier" && isOptIn == "opt-in") {
-                                    emptyList()
-                                } else {
-                                    listOf(ruleId)
-                                }
+                                listOf(ruleId)
                             }
                         }
+                    }
             } catch (e: IOException) {
                 Notifications.Bus.notify(
-                        Notification(
-                                Configuration.KEY_SWIFTLINT,
-                                "Error",
-                                """
+                    Notification(
+                        Configuration.KEY_SWIFTLINT,
+                        "Error",
+                        """
                                 Can't get SwiftLint rules
                                 Exception: ${e.message}
                                 """.trimIndent(),
-                                NotificationType.ERROR
-                        )
+                        NotificationType.ERROR
+                    )
                 )
                 e.printStackTrace()
                 emptyList()
@@ -71,45 +76,58 @@ class SwiftLintCompletionContributor : CompletionContributor() {
     }
 
     init {
-        extend(CompletionType.BASIC, PlatformPatterns.psiComment(), object: CompletionProvider<CompletionParameters>() {
-            override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, resultSet: CompletionResultSet) {
-                val position = parameters.position
-                val text = position.text
-                if (!text.startsWith(LINE_COMMENT_PREFIX)) return
+        extend(
+            CompletionType.BASIC,
+            PlatformPatterns.psiElement(),
+//            PlatformPatterns.psiComment(),
+            object : CompletionProvider<CompletionParameters>() {
+                override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, resultSet: CompletionResultSet) {
+                    val position = parameters.position
+                    if (position.parent.elementType !is SwiftLazyEolCommentElementType) return
 
-                if (swiftLintRulesIds.isEmpty()) {
-                    project = parameters.originalFile.project
-                    swiftLintRulesIds = rulesFromSwiftLint
-                    ProgressManager.checkCanceled()
-                }
-
-                val prefix = resultSet.prefixMatcher.prefix
-                val prefixStart = parameters.offset - prefix.length - position.textRange.startOffset
-                val textBeforePrefix = text.substring(0, prefixStart).substring(2).trimStart()
-
-                when {
-                    swiftlintActionsWithModifiers.any { textBeforePrefix.startsWith(it) } -> {
-                        swiftLintRulesIds.map { LookupElementBuilder.create(it) }.forEach { resultSet.addElement(it) }
+                    if (swiftLintRulesIds.isEmpty()) {
+                        project = parameters.originalFile.project
+                        swiftLintRulesIds = rulesFromSwiftLint
+                        ProgressManager.checkCanceled()
                     }
-                    swiftlintActions.any { textBeforePrefix.startsWith(it) } -> {
-                        if (textBeforePrefix.endsWith(":")) {
-                            modifiers.map { LookupElementBuilder.create(it) }.forEach { resultSet.addElement(it) }
-                        } else if (textBeforePrefix.endsWith(" ")) {
-                            swiftLintRulesIds.map { LookupElementBuilder.create(it) }.forEach { resultSet.addElement(it) }
-                            resultSet.addElement(LookupElementBuilder.create("all"))
+
+                    val prefix = resultSet.prefixMatcher.prefix
+                    val textBeforePrefix = position.parent.children
+                        .drop(1)
+                        .map { it.text }
+                        .joinToString(separator = "")
+                        .replace("IntellijIdeaRulezzz", "")
+                        .trimStart()
+                        .dropLast(prefix.length)
+
+                    when {
+                        swiftlintActionsWithModifiers.any { textBeforePrefix.startsWith(it) } -> {
+                            swiftLintRulesIds.map { LookupElementBuilder.create(it) }
+                                .forEach { resultSet.addElement(it) }
+                        }
+                        swiftlintActions.any { textBeforePrefix.startsWith(it) } -> {
+                            if (textBeforePrefix.endsWith(":")) {
+                                modifiers.map { LookupElementBuilder.create(it) }.forEach { resultSet.addElement(it) }
+                            } else if (textBeforePrefix.endsWith(" ")) {
+                                swiftLintRulesIds.map { LookupElementBuilder.create(it) }
+                                    .forEach { resultSet.addElement(it) }
+                                resultSet.addElement(LookupElementBuilder.create("all"))
+                            }
+                        }
+                        textBeforePrefix.startsWith(SWIFTLINT_KEYWORD_WITH_COLON) -> {
+                            actions.map { LookupElementBuilder.create(it) }.forEach { resultSet.addElement(it) }
+                            actionsWithModifiers.map { LookupElementBuilder.create(it) }
+                                .forEach { resultSet.addElement(it) }
+                        }
+                        textBeforePrefix.isEmpty() -> {
+                            resultSet.addElement(LookupElementBuilder.create(SWIFTLINT_KEYWORD_WITH_COLON))
+                            swiftlintActions.map { LookupElementBuilder.create(it) }
+                                .forEach { resultSet.addElement(it) }
+                            swiftlintActionsWithModifiers.map { LookupElementBuilder.create(it) }
+                                .forEach { resultSet.addElement(it) }
                         }
                     }
-                    textBeforePrefix.startsWith(SWIFTLINT_KEYWORD_WITH_COLON) -> {
-                        actions.map { LookupElementBuilder.create(it) }.forEach { resultSet.addElement(it) }
-                        actionsWithModifiers.map { LookupElementBuilder.create(it) }.forEach { resultSet.addElement(it) }
-                    }
-                    textBeforePrefix.isEmpty() -> {
-                        resultSet.addElement(LookupElementBuilder.create(SWIFTLINT_KEYWORD_WITH_COLON))
-                        swiftlintActions.map { LookupElementBuilder.create(it) }.forEach { resultSet.addElement(it) }
-                        swiftlintActionsWithModifiers.map { LookupElementBuilder.create(it) }.forEach { resultSet.addElement(it) }
-                    }
                 }
-            }
-        })
+            })
     }
 }

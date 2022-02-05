@@ -34,8 +34,10 @@ class Configuration(val project: Project) : Configurable {
 
         // Global path
         val pathLabel = JLabel("SwiftLint path:", SwingConstants.RIGHT)
-        swiftLintPathBrowser.addBrowseFolderListener("SwiftLint", "Select path to SwiftLint executable", project,
-                FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor())
+        swiftLintPathBrowser.addBrowseFolderListener(
+            "SwiftLint", "Select path to SwiftLint executable", project,
+            FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor()
+        )
         swiftLintPathBrowser.textField.text = DEFAULT_SWIFTLINT_PATH
         swiftLintPathBrowser.textField.document.addDocumentListener(listener)
 

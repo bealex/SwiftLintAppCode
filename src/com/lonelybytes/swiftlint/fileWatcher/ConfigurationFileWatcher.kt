@@ -5,7 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 
-class ConfigurationFileWatcher(val project: Project): BulkFileListener {
+class ConfigurationFileWatcher(val project: Project) : BulkFileListener {
     override fun after(events: MutableList<out VFileEvent>) {
         super.after(events)
 

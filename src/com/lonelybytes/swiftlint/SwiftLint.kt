@@ -7,6 +7,7 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
 import java.io.InputStreamReader
+import kotlin.test.assertEquals
 
 
 class SwiftLint {
@@ -22,10 +23,7 @@ class SwiftLint {
 
     @Throws(IOException::class, InterruptedException::class)
     fun getSwiftLintRulesList(aToolPath: String): List<String> {
-        val params = mutableListOf(
-                aToolPath,
-                "rules"
-        )
+        val params = mutableListOf(aToolPath, "rules")
         val process = Runtime.getRuntime().exec(params.toTypedArray())
         process.waitFor()
         return processSwiftLintOutput(process)
@@ -33,12 +31,9 @@ class SwiftLint {
 
     @Throws(IOException::class, InterruptedException::class)
     private fun processAutocorrect(aToolPath: String, aFilePath: String, aRunDirectory: File) {
-        val params = mutableListOf(
-                aToolPath,
-                "autocorrect",
-                "--no-cache",
-                "--path", aFilePath
-        )
+        val params = mutableListOf(aToolPath, "autocorrect", "--no-cache", "--path", aFilePath)
+
+//        println(" --> # Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
 
         val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), aRunDirectory)
         process.waitFor()
@@ -46,13 +41,9 @@ class SwiftLint {
 
     @Throws(IOException::class, InterruptedException::class)
     private fun processAsApp(toolPath: String, aAction: String, aFilePath: String, aRunDirectory: File): List<String> {
-        val params: MutableList<String> = mutableListOf(
-                toolPath,
-                aAction,
-                "--no-cache",
-                "--reporter", "csv",
-                "--path", aFilePath
-        )
+        val params: MutableList<String> = mutableListOf(toolPath, aAction, "--no-cache", "--reporter", "csv", "--path", aFilePath)
+
+//        println(" --> # Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
 
         val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), aRunDirectory)
         process.waitFor()
@@ -60,29 +51,38 @@ class SwiftLint {
     }
 
     private fun processSwiftLintOutput(aProcess: Process): List<String> {
-        var outputLines: List<String> = emptyList()
-        var errorLines: List<String> = emptyList()
+        var outputLines: List<String> = arrayListOf()
+        var errorLines: List<String> = arrayListOf()
         try {
-            outputLines = BufferedReader(InputStreamReader(aProcess.inputStream))
-                    .readLines()
-            errorLines = BufferedReader(InputStreamReader(aProcess.errorStream))
-                    .readLines()
-                    .filter {
-                        val testLine = it.lowercase()
-                        testLine.contains("error:") || testLine.contains("warning:") || testLine.contains("invalid:") || testLine.contains("unrecognized arguments:")
-                    }
+            val output = aProcess.inputStream.bufferedReader().use(BufferedReader::readText)
+            outputLines = output.split("\n")
+
+            val error = aProcess.errorStream.bufferedReader().use(BufferedReader::readText)
+            errorLines = error.split("\n")
+                .filter {
+                    val line = it.lowercase()
+                    line.contains("error:") || line.contains("warning:") || line.contains("invalid:") || line.contains("unrecognized arguments:")
+                }
         } catch (e: IOException) {
             if (!e.message!!.contains("closed")) {
-                Notifications.Bus.notify(Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + e.message, NotificationType.INFORMATION))
+                Notifications.Bus.notify(
+                    Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + e.message, NotificationType.INFORMATION)
+                )
             }
             e.printStackTrace()
         }
 
         for (errorLine in errorLines) {
             if (errorLine.trim { it <= ' ' }.isNotEmpty()) {
-                Notifications.Bus.notify(Notification(Configuration.KEY_SWIFTLINT, "Error", "SwiftLint error: $errorLine", NotificationType.INFORMATION))
+                Notifications.Bus.notify(
+                    Notification(Configuration.KEY_SWIFTLINT, "Error", "SwiftLint error: $errorLine", NotificationType.INFORMATION)
+                )
             }
         }
+
+//        println(" --> # Output: \n\t" + outputLines.joinToString(separator = "\n\t"))
+//        println(" --> # Error: \n\t" + errorLines.joinToString(separator = "\n\t"))
+
         return outputLines
     }
 }

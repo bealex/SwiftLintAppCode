@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -43,6 +43,7 @@
 		FA1FED97246848C8006FBB5A /* TestHierarchy2.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1FED93246848C8006FBB5A /* TestHierarchy2.swift */; };
 		FA1FED98246848C8006FBB5A /* TestHierarchy1.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1FED96246848C8006FBB5A /* TestHierarchy1.swift */; };
 		FA2105711DAA35D200FCEF64 /* TestShortParameterName.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2105701DAA35D200FCEF64 /* TestShortParameterName.swift */; };
+		FA84A37227AE6FF6007BF7E2 /* Macaroni in Frameworks */ = {isa = PBXBuildFile; productRef = FA84A37127AE6FF6007BF7E2 /* Macaroni */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -76,7 +77,6 @@
 		2DBA18079CADBB38DF614B6E /* TestSyntacticSugar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestSyntacticSugar.swift; sourceTree = "<group>"; };
 		2DBA18D2D5EA879374714FC7 /* TestNumbers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestNumbers.swift; sourceTree = "<group>"; };
 		2DBA197509FCF4D18F71659C /* TestSwiftSelfAware.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestSwiftSelfAware.swift; sourceTree = "<group>"; };
-		2DBA19B0214AEF5F2E5176D4 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = file.yml; name = .swiftlint.yml; path = SwiftLintTests/.swiftlint.yml; sourceTree = "<group>"; };
 		2DBA1A66AC3C391A2E7030CF /* TestOpeningBrace.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestOpeningBrace.swift; sourceTree = "<group>"; };
 		2DBA1A78BBC35D923A37407F /* _TestGenerator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = _TestGenerator.swift; sourceTree = "<group>"; };
 		2DBA1ACDE2AD89EB761316A2 /* TestSpacesInsideMethod.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TestSpacesInsideMethod.swift; sourceTree = "<group>"; };
@@ -106,6 +106,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FA84A37227AE6FF6007BF7E2 /* Macaroni in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -155,7 +156,6 @@
 				FA21056E1DAA35D200FCEF64 /* Products */,
 				FA2105771DAA621400FCEF64 /* Info.plist */,
 				2DBA174DA124B62CE45FB2C1 /* main.swift */,
-				2DBA19B0214AEF5F2E5176D4 /* .swiftlint.yml */,
 				2DBA197509FCF4D18F71659C /* TestSwiftSelfAware.swift */,
 			);
 			sourceTree = "<group>";
@@ -223,6 +223,9 @@
 			dependencies = (
 			);
 			name = SwiftLintTests;
+			packageProductDependencies = (
+				FA84A37127AE6FF6007BF7E2 /* Macaroni */,
+			);
 			productName = SwiftLintTests;
 			productReference = FA21056D1DAA35D200FCEF64 /* SwiftLintTests */;
 			productType = "com.apple.product-type.tool";
@@ -253,6 +256,9 @@
 				en,
 			);
 			mainGroup = FA2105641DAA35D200FCEF64;
+			packageReferences = (
+				FA84A37027AE6FF6007BF7E2 /* XCRemoteSwiftPackageReference "Macaroni" */,
+			);
 			productRefGroup = FA21056E1DAA35D200FCEF64 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -441,6 +447,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FA84A37027AE6FF6007BF7E2 /* XCRemoteSwiftPackageReference "Macaroni" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/bealex/Macaroni";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FA84A37127AE6FF6007BF7E2 /* Macaroni */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA84A37027AE6FF6007BF7E2 /* XCRemoteSwiftPackageReference "Macaroni" */;
+			productName = Macaroni;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = FA2105651DAA35D200FCEF64 /* Project object */;
 }
