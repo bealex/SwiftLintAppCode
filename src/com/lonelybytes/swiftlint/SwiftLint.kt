@@ -6,8 +6,8 @@ import com.intellij.notification.Notifications
 import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
-import java.io.InputStreamReader
-import kotlin.test.assertEquals
+import java.nio.charset.Charset
+import java.util.concurrent.TimeUnit
 
 
 class SwiftLint {
@@ -25,7 +25,7 @@ class SwiftLint {
     fun getSwiftLintRulesList(aToolPath: String): List<String> {
         val params = mutableListOf(aToolPath, "rules")
         val process = Runtime.getRuntime().exec(params.toTypedArray())
-        process.waitFor()
+        process.waitFor(1, TimeUnit.SECONDS)
         return processSwiftLintOutput(process)
     }
 
@@ -36,7 +36,7 @@ class SwiftLint {
 //        println(" --> # Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
 
         val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), aRunDirectory)
-        process.waitFor()
+        process.waitFor(1, TimeUnit.SECONDS)
     }
 
     @Throws(IOException::class, InterruptedException::class)
@@ -46,18 +46,20 @@ class SwiftLint {
 //        println(" --> # Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
 
         val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), aRunDirectory)
-        process.waitFor()
+        process.waitFor(1, TimeUnit.SECONDS)
         return processSwiftLintOutput(process)
     }
 
     private fun processSwiftLintOutput(aProcess: Process): List<String> {
+//        println("Started to process swiftlint output...")
+
         var outputLines: List<String> = arrayListOf()
         var errorLines: List<String> = arrayListOf()
         try {
-            val output = aProcess.inputStream.bufferedReader().use(BufferedReader::readText)
+            val output = aProcess.inputStream.bufferedReader(Charset.forName("UTF8")).use(BufferedReader::readText)
             outputLines = output.split("\n")
 
-            val error = aProcess.errorStream.bufferedReader().use(BufferedReader::readText)
+            val error = aProcess.errorStream.bufferedReader(Charset.forName("UTF8")).use(BufferedReader::readText)
             errorLines = error.split("\n")
                 .filter {
                     val line = it.lowercase()

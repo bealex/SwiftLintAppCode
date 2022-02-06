@@ -22,6 +22,7 @@
         <![CDATA[
         <p>1.13.4, 1.13.5</p>
         <ul>
+          <li>Fixed comments autocompletion</li>
           <li>Fixed problem with configuration file searching in projects with Swift Package Manager and with multiple projects opened.</li>
         </ul>
         <p>1.13.3</p>

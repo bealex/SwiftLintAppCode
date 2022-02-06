@@ -5,14 +5,11 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.patterns.PlatformPatterns
-import com.intellij.psi.PsiElement
 import com.intellij.util.ProcessingContext
 import com.jetbrains.swift.lang.parser.SwiftLazyEolCommentElementType
-import com.jetbrains.swift.psi.impl.children
 import com.jetbrains.swift.psi.impl.elementType
 import com.lonelybytes.swiftlint.Configuration
 import com.lonelybytes.swiftlint.SwiftLint
@@ -83,7 +80,8 @@ class SwiftLintCompletionContributor : CompletionContributor() {
             object : CompletionProvider<CompletionParameters>() {
                 override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, resultSet: CompletionResultSet) {
                     val position = parameters.position
-                    if (position.parent.elementType !is SwiftLazyEolCommentElementType) return
+                    // swiftlint sees only comments that start with `//`, `///` will not do :(
+                    if (position.parent.elementType !is SwiftLazyEolCommentElementType && position.parent.firstChild.text == "//") return
 
                     if (swiftLintRulesIds.isEmpty()) {
                         project = parameters.originalFile.project
