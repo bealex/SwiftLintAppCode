@@ -15,3 +15,6 @@ out
 /.idea/workspace.xml
 /.idea/dictionaries/alex.xml
 /Tests/SwiftLintTests/.idea/workspace.xml
+
+/keys/private.pem
+/keys/chain.crt
