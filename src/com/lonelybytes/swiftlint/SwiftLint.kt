@@ -8,6 +8,7 @@ import java.io.File
 import java.io.IOException
 import java.nio.charset.Charset
 import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 
 
 class SwiftLint {
@@ -25,7 +26,6 @@ class SwiftLint {
     fun getSwiftLintRulesList(aToolPath: String): List<String> {
         val params = mutableListOf(aToolPath, "rules")
         val process = Runtime.getRuntime().exec(params.toTypedArray())
-        process.waitFor(1, TimeUnit.SECONDS)
         return processSwiftLintOutput(process)
     }
 
@@ -36,7 +36,7 @@ class SwiftLint {
 //        println(" --> # Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
 
         val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), aRunDirectory)
-        process.waitFor(1, TimeUnit.SECONDS)
+        processSwiftLintOutput(process) // need this, otherwise swiftlint can wait indefinitely in case of lots of output
     }
 
     @Throws(IOException::class, InterruptedException::class)
@@ -46,33 +46,53 @@ class SwiftLint {
 //        println(" --> # Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
 
         val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), aRunDirectory)
-        process.waitFor(1, TimeUnit.SECONDS)
         return processSwiftLintOutput(process)
     }
 
     private fun processSwiftLintOutput(aProcess: Process): List<String> {
 //        println("Started to process swiftlint output...")
 
+        val outputBufferedReader = aProcess.inputStream.bufferedReader(Charset.forName("UTF8"))
         var outputLines: List<String> = arrayListOf()
-        var errorLines: List<String> = arrayListOf()
-        try {
-            val output = aProcess.inputStream.bufferedReader(Charset.forName("UTF8")).use(BufferedReader::readText)
-            outputLines = output.split("\n")
-
-            val error = aProcess.errorStream.bufferedReader(Charset.forName("UTF8")).use(BufferedReader::readText)
-            errorLines = error.split("\n")
-                .filter {
-                    val line = it.lowercase()
-                    line.contains("error:") || line.contains("warning:") || line.contains("invalid:") || line.contains("unrecognized arguments:")
+        val outputThread = thread(true) {
+            try {
+                val output = outputBufferedReader.use(BufferedReader::readText)
+                outputLines = output.split("\n")
+            } catch (e: IOException) {
+                if (!e.message!!.contains("closed")) {
+                    Notifications.Bus.notify(
+                        Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + e.message, NotificationType.INFORMATION)
+                    )
                 }
-        } catch (e: IOException) {
-            if (!e.message!!.contains("closed")) {
-                Notifications.Bus.notify(
-                    Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + e.message, NotificationType.INFORMATION)
-                )
+                e.printStackTrace()
             }
-            e.printStackTrace()
         }
+
+        val errorBufferedReader = aProcess.errorStream.bufferedReader(Charset.forName("UTF8"))
+        var errorLines: List<String> = arrayListOf()
+        val errorThread = thread(true) {
+            try {
+                val error = errorBufferedReader.use(BufferedReader::readText)
+                errorLines = error.split("\n")
+                    .filter {
+                        val line = it.lowercase()
+                        line.contains("error:") || line.contains("warning:") || line.contains("invalid:") || line.contains("unrecognized arguments:")
+                    }
+            } catch (e: IOException) {
+                if (!e.message!!.contains("closed")) {
+                    Notifications.Bus.notify(
+                        Notification(Configuration.KEY_SWIFTLINT, "Error", "IOException: " + e.message, NotificationType.INFORMATION)
+                    )
+                }
+                e.printStackTrace()
+            }
+        }
+
+        outputThread.join(30000)
+        errorThread.join(30000)
+
+        outputBufferedReader.close()
+        errorBufferedReader.close()
 
         for (errorLine in errorLines) {
             if (errorLine.trim { it <= ' ' }.isNotEmpty()) {
