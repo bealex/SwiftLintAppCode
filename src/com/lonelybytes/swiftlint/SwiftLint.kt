@@ -12,6 +12,14 @@ import kotlin.concurrent.thread
 
 
 class SwiftLint {
+    public companion object {
+        private const val DEBUG_ON = false
+
+        fun log(message: String) {
+            if (DEBUG_ON) println(message)
+        }
+    }
+
     @Throws(IOException::class, InterruptedException::class)
     fun executeSwiftLint(toolPath: String, aAction: String, aFilePath: String, aRunDirectory: File): List<String> {
         return if (aAction == "autocorrect") {
@@ -33,7 +41,7 @@ class SwiftLint {
     private fun processAutocorrect(aToolPath: String, aFilePath: String, aRunDirectory: File) {
         val params = mutableListOf(aToolPath, "autocorrect", "--no-cache", "--path", aFilePath)
 
-//        println(" --> # Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
+        log(" --> # Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
 
         val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), aRunDirectory)
         processSwiftLintOutput(process) // need this, otherwise swiftlint can wait indefinitely in case of lots of output
@@ -43,14 +51,14 @@ class SwiftLint {
     private fun processAsApp(toolPath: String, aAction: String, aFilePath: String, aRunDirectory: File): List<String> {
         val params: MutableList<String> = mutableListOf(toolPath, aAction, "--no-cache", "--reporter", "csv", "--path", aFilePath)
 
-//        println(" --> # Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
+        log(" --> # Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
 
         val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), aRunDirectory)
         return processSwiftLintOutput(process)
     }
 
     private fun processSwiftLintOutput(aProcess: Process): List<String> {
-//        println("Started to process swiftlint output...")
+        log("Started to process swiftlint output...")
 
         val outputBufferedReader = aProcess.inputStream.bufferedReader(Charset.forName("UTF8"))
         var outputLines: List<String> = arrayListOf()
@@ -102,8 +110,8 @@ class SwiftLint {
             }
         }
 
-//        println(" --> # Output: \n\t" + outputLines.joinToString(separator = "\n\t"))
-//        println(" --> # Error: \n\t" + errorLines.joinToString(separator = "\n\t"))
+        log(" --> # Output: \n\t" + outputLines.joinToString(separator = "\n\t"))
+        log(" --> # Error: \n\t" + errorLines.joinToString(separator = "\n\t"))
 
         return outputLines
     }
