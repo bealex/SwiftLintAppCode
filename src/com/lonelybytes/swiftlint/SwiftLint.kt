@@ -12,8 +12,9 @@ import kotlin.concurrent.thread
 
 
 class SwiftLint {
-    public companion object {
+    companion object {
         private const val DEBUG_ON = false
+        private const val THREAD_WAIT_TIMEOUT:Long = 10000
 
         fun log(message: String) {
             if (DEBUG_ON) println(message)
@@ -64,8 +65,7 @@ class SwiftLint {
         var outputLines: List<String> = arrayListOf()
         val outputThread = thread(true) {
             try {
-                val output = outputBufferedReader.use(BufferedReader::readText)
-                outputLines = output.split("\n")
+                outputLines = outputBufferedReader.readLines()
             } catch (e: IOException) {
                 if (!e.message!!.contains("closed")) {
                     Notifications.Bus.notify(
@@ -80,8 +80,7 @@ class SwiftLint {
         var errorLines: List<String> = arrayListOf()
         val errorThread = thread(true) {
             try {
-                val error = errorBufferedReader.use(BufferedReader::readText)
-                errorLines = error.split("\n")
+                errorLines = errorBufferedReader.readLines()
                     .filter {
                         val line = it.lowercase()
                         line.contains("error:") || line.contains("warning:") || line.contains("invalid:") || line.contains("unrecognized arguments:")
@@ -96,11 +95,8 @@ class SwiftLint {
             }
         }
 
-        outputThread.join(30000)
-        errorThread.join(30000)
-
-        outputBufferedReader.close()
-        errorBufferedReader.close()
+        outputThread.join(THREAD_WAIT_TIMEOUT)
+        errorThread.join(THREAD_WAIT_TIMEOUT)
 
         for (errorLine in errorLines) {
             if (errorLine.trim { it <= ' ' }.isNotEmpty()) {
