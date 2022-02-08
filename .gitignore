@@ -12,6 +12,7 @@ hs_err_pid*
 out
 /Tests/SwiftLintTests/.idea/vcs.xml
 .DS_Store
+/.idea/git_toolbox_prj.xml
 /.idea/workspace.xml
 /.idea/dictionaries/alex.xml
 /Tests/SwiftLintTests/.idea/workspace.xml
