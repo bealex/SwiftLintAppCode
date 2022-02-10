@@ -81,7 +81,7 @@ class SwiftLintCompletionContributor : CompletionContributor() {
                 override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, resultSet: CompletionResultSet) {
                     val position = parameters.position
                     // swiftlint sees only comments that start with `//`, `///` will not do :(
-                    if (position.parent.elementType !is SwiftLazyEolCommentElementType && position.parent.firstChild.text == "//") return
+                    if (position.parent.elementType !is SwiftLazyEolCommentElementType || position.parent.firstChild.text != LINE_COMMENT_PREFIX) return
 
                     if (swiftLintRulesIds.isEmpty()) {
                         project = parameters.originalFile.project

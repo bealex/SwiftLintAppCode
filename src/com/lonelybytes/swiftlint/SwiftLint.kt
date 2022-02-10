@@ -13,7 +13,7 @@ import kotlin.concurrent.thread
 
 class SwiftLint {
     public companion object {
-        private const val DEBUG_ON = false
+        private const val DEBUG_ON = true
 
         fun log(message: String) {
             if (DEBUG_ON) println(message)
