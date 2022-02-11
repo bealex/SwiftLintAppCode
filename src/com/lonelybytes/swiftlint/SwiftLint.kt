@@ -3,20 +3,21 @@ package com.lonelybytes.swiftlint
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
-import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
 import java.nio.charset.Charset
-import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 
 class SwiftLint {
-    public companion object {
+    companion object {
         private const val DEBUG_ON = true
+        private const val THREAD_WAIT_TIMEOUT: Long = 10000
 
         fun log(message: String) {
-            if (DEBUG_ON) println(message)
+            if (DEBUG_ON) {
+                println(message)
+            }
         }
     }
 
@@ -41,7 +42,7 @@ class SwiftLint {
     private fun processAutocorrect(aToolPath: String, aFilePath: String, aRunDirectory: File) {
         val params = mutableListOf(aToolPath, "autocorrect", "--no-cache", "--path", aFilePath)
 
-        log(" --> # Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
+        log("Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
 
         val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), aRunDirectory)
         processSwiftLintOutput(process) // need this, otherwise swiftlint can wait indefinitely in case of lots of output
@@ -51,7 +52,7 @@ class SwiftLint {
     private fun processAsApp(toolPath: String, aAction: String, aFilePath: String, aRunDirectory: File): List<String> {
         val params: MutableList<String> = mutableListOf(toolPath, aAction, "--no-cache", "--reporter", "csv", "--path", aFilePath)
 
-        log(" --> # Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
+        log("Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
 
         val process = Runtime.getRuntime().exec(params.toTypedArray(), emptyArray(), aRunDirectory)
         return processSwiftLintOutput(process)
@@ -64,8 +65,7 @@ class SwiftLint {
         var outputLines: List<String> = arrayListOf()
         val outputThread = thread(true) {
             try {
-                val output = outputBufferedReader.use(BufferedReader::readText)
-                outputLines = output.split("\n")
+                outputLines = outputBufferedReader.readLines()
             } catch (e: IOException) {
                 if (!e.message!!.contains("closed")) {
                     Notifications.Bus.notify(
@@ -80,8 +80,7 @@ class SwiftLint {
         var errorLines: List<String> = arrayListOf()
         val errorThread = thread(true) {
             try {
-                val error = errorBufferedReader.use(BufferedReader::readText)
-                errorLines = error.split("\n")
+                errorLines = errorBufferedReader.readLines()
                     .filter {
                         val line = it.lowercase()
                         line.contains("error:") || line.contains("warning:") || line.contains("invalid:") || line.contains("unrecognized arguments:")
@@ -96,8 +95,8 @@ class SwiftLint {
             }
         }
 
-        outputThread.join(30000)
-        errorThread.join(30000)
+        outputThread.join(THREAD_WAIT_TIMEOUT)
+        errorThread.join(THREAD_WAIT_TIMEOUT)
 
         outputBufferedReader.close()
         errorBufferedReader.close()
@@ -110,8 +109,8 @@ class SwiftLint {
             }
         }
 
-        log(" --> # Output: \n\t" + outputLines.joinToString(separator = "\n\t"))
-        log(" --> # Error: \n\t" + errorLines.joinToString(separator = "\n\t"))
+        log("Output: \n\t" + outputLines.joinToString(separator = "\n\t"))
+        log("Error: \n\t" + errorLines.joinToString(separator = "\n\t"))
 
         return outputLines
     }

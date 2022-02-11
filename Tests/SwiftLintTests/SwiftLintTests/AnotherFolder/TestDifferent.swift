@@ -55,7 +55,7 @@ class TestDifferent1: NSObject {
 
         for user in users {
             if user.id == 1 {
-                return true
+                return // true <-- uncommenting this will stop this file from linting
             }
         }
 

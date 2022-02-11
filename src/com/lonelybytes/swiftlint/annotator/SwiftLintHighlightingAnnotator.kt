@@ -43,29 +43,33 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
         return collectInformation(aFile, false)
     }
 
+    override fun collectInformation(file: PsiFile, editor: Editor, hasErrors: Boolean): InitialInfo? {
+        return collectInformation(file)
+    }
+
     fun collectInformation(aFile: PsiFile, ignoreInspectionSetting: Boolean): InitialInfo? {
-        SwiftLint.log("\n --> File: " + aFile.virtualFile.canonicalPath)
+        SwiftLint.log("File: " + aFile.virtualFile.canonicalPath)
 
         val enabledInProjectSettings = InspectionProfileManager.getInstance(aFile.project)
             .currentProfile.isToolEnabled(HighlightDisplayKey.find(SHORT_NAME))
         if (!enabledInProjectSettings && !ignoreInspectionSetting) return null
 
-        SwiftLint.log("\n --> Enabled for file: " + aFile.virtualFile.canonicalPath)
+        SwiftLint.log("Enabled for file: " + aFile.virtualFile.canonicalPath)
 
         if (!aFile.isWritable) return null
         val filePath: String = aFile.virtualFile.canonicalPath ?: return null
         val document: Document = FileDocumentManager.getInstance().getDocument(aFile.virtualFile) ?: return null
         if (document.lineCount == 0 || !shouldCheck(aFile)) return null
 
-        SwiftLint.log(" --> Easy checks done for: " + aFile.virtualFile.canonicalPath)
+        SwiftLint.log("Easy checks done for: " + aFile.virtualFile.canonicalPath)
 
         val swiftLintConfigPath: String? = SwiftLintConfig.swiftLintConfigPath(aFile.project, aFile.virtualFile)
-        SwiftLint.log(" --> Config path: '" + swiftLintConfigPath + "' for: " + aFile.virtualFile.canonicalPath)
+        SwiftLint.log("Config path: '" + swiftLintConfigPath + "' for: " + aFile.virtualFile.canonicalPath)
         if (SwiftLintInspection.State(aFile.project).isDisableWhenNoConfigPresent && swiftLintConfigPath == null) {
             return null
         }
 
-        SwiftLint.log(" --> Will Lint! " + aFile.virtualFile.canonicalPath)
+        SwiftLint.log("Will Lint! " + aFile.virtualFile.canonicalPath)
 
         return InitialInfo(aFile, filePath, document, true, swiftLintConfigPath)
     }

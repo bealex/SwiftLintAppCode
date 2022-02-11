@@ -1,10 +1,10 @@
-<idea-plugin>
+<idea-plugin require-restart="false">
     <module value="com.lonelybytes.swiftlint"/>
 
     <id>com.appcodeplugins.swiftlint</id>
 
     <name>SwiftLint</name>
-    <version>1.13.5</version>
+    <version>1.13.6</version>
     <vendor email="alex@lonelybytes.com" url="https://github.com/bealex/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[
@@ -20,6 +20,11 @@
 
     <change-notes>
         <![CDATA[
+        <p>1.13.6</p>
+        <ul>
+          <li>Fixed comments autocompletion (again)</li>
+          <li>Fixed problem when SwiftLint did not run if other errors are present in the file.</li>
+        </ul>
         <p>1.13.4, 1.13.5</p>
         <ul>
           <li>Fixed comments autocompletion</li>
