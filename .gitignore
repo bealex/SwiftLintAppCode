@@ -18,3 +18,4 @@ out
 
 /keys/private.pem
 /keys/chain.crt
+/sign.sh

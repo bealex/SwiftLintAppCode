@@ -51,6 +51,7 @@ excluded:
   - Pods
   - ThirdParty
   - SwiftLintTests/Disabled
+  - SwiftLintTests/Top/*/Excluded.swift
 
 force_cast: error
 force_try: error

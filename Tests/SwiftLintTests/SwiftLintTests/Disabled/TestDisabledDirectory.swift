@@ -7,4 +7,7 @@ class TestOpeningBrace {
     init(aaa: Int)
     {
     }
+
+
+
 }

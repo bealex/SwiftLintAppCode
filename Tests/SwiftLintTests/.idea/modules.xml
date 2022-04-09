@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/SwiftLintTests.iml" filepath="$PROJECT_DIR$/.idea/SwiftLintTests.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Tests.SwiftLintTests.iml" filepath="$PROJECT_DIR$/.idea/Tests.SwiftLintTests.iml" />
     </modules>
   </component>
 </project>
