@@ -33,7 +33,7 @@ class Configuration(val project: Project) : Configurable {
         val panel = JPanel(VerticalLayout(2, SwingConstants.LEFT))
 
         // Global path
-        val pathLabel = JLabel("SwiftLint path:", SwingConstants.RIGHT)
+        val pathLabel = JLabel("SwiftLint binary path:", SwingConstants.RIGHT)
         swiftLintPathBrowser.addBrowseFolderListener(
             "SwiftLint", "Select path to SwiftLint executable", project,
             FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor()
