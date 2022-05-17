@@ -1,33 +1,47 @@
-## SwiftLint for AppCode
+# SwiftLint for AppCode
 
-This simple plugin allows to highlight errors and warnings from [SwiftLint](https://github.com/realm/SwiftLint) like this:
+This plugin shows errors and warnings from [SwiftLint](https://github.com/realm/SwiftLint)
+in [JetBrains AppCode](https://www.jetbrains.com/objc/).
 
-<img src="img/swiftlint.png" width="863" alt="Example of plugin usage"/>
+Screenshot:<br/>
+<img src="img/swiftlint.png" alt="Screenshot of the plugin showing a warning on a Swift file in AppCode"/>
 
-### Installation
-
-You should already have SwiftLint installed somewhere.
- 1. Configure SwiftLint via `.swiftlint.yml` file, if needed. Look [here](https://github.com/realm/SwiftLint#configuration) for details.
- 
-    (Note that the plugin works with `reporter: "csv"`)
-    
- 2. Install the plugin from the repository.
- 
- 3. Set path to SwiftLint binary in the Preferences:
-
-    <img src="img/preferences.png" width="897" alt="SwiftLint settings in AppCode Preferences"/>
-
- 4. Check that the corresponding inspection is turned on in AppCode:
- 
+## Install
+1. Install `swiftlint` binary from <https://github.com/realm/SwiftLint>
+2. Install plugin
+   - Open AppCode Preferences and go to Plugins.
+   - Click the Marketplace tab
+   - Enter "SwiftLint" in the search box
+   - Click Install
+   - Click OK
+3. Set `swiftlint` binary path
+   - Open AppCode Preferences and go to Tools > SwiftLint.
+   - Update the "SwiftLint binary path" box
+   - <details><summary>Screenshot</summary>
+     <img src="img/preferences.png" width="897" alt="SwiftLint settings in AppCode Preferences"/>
+     </details>
+4. Enable inspection
+   - Open AppCode Preferences and go to Editor > Inspections.
+   - Check the box next to Swift > "SwiftLint (available for Code|Inspect Code)"
+   - <details><summary>Screenshot</summary>
      <img src="img/inspections.png" width="900" alt="Section Inspections of AppCode Preferences"/>
+     </details>
+5. Restart AppCode
 
-You are good to go!
+## Use
+Lint errors appear in your code as red underlines or orange hi-lighting.
 
-## Development
+How to configure the lint rules:
+1. Create a file called `.swiftlint.yml` in the root directory of your project
+1. Consult the docs: <https://github.com/realm/SwiftLint#rules>
+
+How to disable rules in code: <https://github.com/realm/SwiftLint#disable-rules-in-code>
+
+## Develop the Plugin
 
 This is a DevKit plugin. And it is old, so be prepared. 
 
-To do something with it, you need:
+You will need:
  - JDK 11 (I use OpenJDK)
  - IntelliJ Idea with "Plugin DevKit" plugin enabled
  - These sources
