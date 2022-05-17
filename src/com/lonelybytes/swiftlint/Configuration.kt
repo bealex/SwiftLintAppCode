@@ -19,7 +19,7 @@ class Configuration(val project: Project) : Configurable {
     private var modified = false
 
     private var swiftLintPathBrowser: TextFieldWithBrowseButton = TextFieldWithBrowseButton(JTextField(30))
-    private var quickFixCheckbox: JBCheckBox = JBCheckBox("Enable \"Autocorrect\" quick-fix")
+    private var quickFixCheckbox: JBCheckBox = JBCheckBox("Show \"Run swiftlint autocorrect\" option on lint error popup")
     private var disableWhenNoConfigPresentCheckbox: JBCheckBox = JBCheckBox("Disable when no .swiftlint.yml present")
 
     private val listener = ConfigurationModifiedListener(this)
