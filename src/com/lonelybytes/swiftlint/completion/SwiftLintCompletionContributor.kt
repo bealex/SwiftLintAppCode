@@ -9,7 +9,6 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.util.ProcessingContext
-import com.jetbrains.swift.lang.parser.SwiftLazyEolCommentElementType
 import com.jetbrains.swift.psi.impl.elementType
 import com.lonelybytes.swiftlint.Configuration
 import com.lonelybytes.swiftlint.SwiftLint
@@ -81,7 +80,11 @@ class SwiftLintCompletionContributor : CompletionContributor() {
                 override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, resultSet: CompletionResultSet) {
                     val position = parameters.position
                     // swiftlint sees only comments that start with `//`, `///` will not do :(
-                    if (position.parent.elementType !is SwiftLazyEolCommentElementType || position.parent.firstChild.text != LINE_COMMENT_PREFIX) return
+                    // can't check statically, older CLion does not have this class.
+                    if (!position.text.startsWith("// ")) return
+//                    if (position.parent.elementType.javaClass.kotlin.simpleName != "SwiftLazyEolCommentElementType" ||
+//                        position.parent.firstChild.text != LINE_COMMENT_PREFIX ||
+//                        position.text != LINE_COMMENT_PREFIX) return
 
                     if (swiftLintRulesIds.isEmpty()) {
                         project = parameters.originalFile.project
@@ -90,13 +93,23 @@ class SwiftLintCompletionContributor : CompletionContributor() {
                     }
 
                     val prefix = resultSet.prefixMatcher.prefix
-                    val textBeforePrefix = position.parent.children
-                        .drop(1)
-                        .map { it.text }
-                        .joinToString(separator = "")
-                        .replace("IntellijIdeaRulezzz", "")
-                        .trimStart()
-                        .dropLast(prefix.length)
+
+                    val textBeforePrefix =
+                        if (position.text.startsWith("// ")) {
+                            position.text
+                                .drop(3)
+                                .replace("IntellijIdeaRulezzz", "")
+                                .trimStart()
+                                .dropLast(prefix.length)
+                        } else {
+                            position.parent.children
+                                .drop(1)
+                                .map { it.text }
+                                .joinToString(separator = "")
+                                .replace("IntellijIdeaRulezzz", "")
+                                .trimStart()
+                                .dropLast(prefix.length)
+                        }
 
                     when {
                         swiftlintActionsWithModifiers.any { textBeforePrefix.startsWith(it) } -> {

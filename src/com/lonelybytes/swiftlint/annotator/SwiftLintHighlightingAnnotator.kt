@@ -490,7 +490,7 @@ class SwiftLintHighlightingAnnotator : ExternalAnnotator<InitialInfo?, Annotator
 
     private fun shouldCheck(aFile: PsiFile): Boolean {
         val isSwift = "swift".equals(aFile.virtualFile.extension, ignoreCase = true)
-        val isInProject: Boolean = ProjectFileIndex.SERVICE.getInstance(aFile.project).isInSource(aFile.virtualFile)
+        val isInProject: Boolean = ProjectFileIndex.getInstance(aFile.project).isInSource(aFile.virtualFile)
         return isSwift && isInProject
     }
 

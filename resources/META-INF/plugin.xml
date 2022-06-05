@@ -72,6 +72,10 @@
     <depends>com.intellij.modules.cidr.lang</depends>
     <depends>com.intellij.modules.swift.lang</depends>
 
+<!--    <depends>com.intellij.cidr.base</depends>-->
+<!--    <depends>com.intellij.cidr.lang</depends>-->
+<!--    <depends>com.intellij.swift</depends>-->
+
     <extensions defaultExtensionNs="com.intellij">
         <globalInspection displayName="SwiftLint" groupName="Swift" implementationClass="com.lonelybytes.swiftlint.SwiftLintInspection"/>
         <projectConfigurable instance="com.lonelybytes.swiftlint.Configuration" displayName="SwiftLint" groupId="tools"/>
