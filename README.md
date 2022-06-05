@@ -14,28 +14,29 @@ Screenshot:<br/>
    - Enter "SwiftLint" in the search box
    - Click Install
    - Click OK
-3. Set `swiftlint` binary path
+3. Restart AppCode
+4. Set `swiftlint` binary path (per project setting, should be OK by default but who knows)
    - Open AppCode Preferences and go to Tools > SwiftLint.
    - Update the "SwiftLint binary path" box
    - <details><summary>Screenshot</summary>
      <img src="img/preferences.png" width="897" alt="SwiftLint settings in AppCode Preferences"/>
      </details>
-4. Enable inspection
+5. Enable inspection (per project setting)
    - Open AppCode Preferences and go to Editor > Inspections.
    - Check the box next to Swift > "SwiftLint (available for Code|Inspect Code)"
    - <details><summary>Screenshot</summary>
      <img src="img/inspections.png" width="900" alt="Section Inspections of AppCode Preferences"/>
      </details>
-5. Restart AppCode
 
 ## Use
-Lint errors appear in your code as red underlines or orange hi-lighting.
+Lint errors appear in your code as red underlines, orange highlighting. This depends on severity.
 
 How to configure the lint rules:
-1. Create a file called `.swiftlint.yml` in the root directory of your project
-1. Consult the docs: <https://github.com/realm/SwiftLint#rules>
+1. Create a file called `.swiftlint.yml` in the root directory of your project.
+2. Add rules configuration there. Consult the docs: <https://github.com/realm/SwiftLint#rules>
 
-How to disable rules in code: <https://github.com/realm/SwiftLint#disable-rules-in-code>
+How to disable rules in code: <https://github.com/realm/SwiftLint#disable-rules-in-code>.
+There is an autocompletion for that. Just try autocompletion inside the comment.
 
 ## Develop the Plugin
 

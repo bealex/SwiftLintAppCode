@@ -4,12 +4,12 @@
     <id>com.appcodeplugins.swiftlint</id>
 
     <name>SwiftLint</name>
-    <version>1.13.6</version>
+    <version>1.13.7</version>
     <vendor email="alex@lonelybytes.com" url="https://github.com/bealex/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[
     <p>Shows errors and warnings from SwiftLint, a tool to enforce Swift style and conventions.
-    "Autocorrect" function fixes lint errors in all files.</p>
+    "Autocorrect" function fixes lint errors (using SwiftLint autocorrect) in all files.</p>
     <p>How to install this plugin:
     <a href='https://github.com/bealex/SwiftLintAppCode#install'>https://github.com/bealex/SwiftLintAppCode#install</a>
     </p>
@@ -18,6 +18,11 @@
 
     <change-notes>
         <![CDATA[
+        <p>1.13.7</p>
+        <ul>
+          <li>Documentation updated (thanks to https://github.com/mleonhard)</li>
+          <li>Restored work in CLion 2021</li>
+        </ul>
         <p>1.13.6</p>
         <ul>
           <li>Fixed comments autocompletion (again)</li>

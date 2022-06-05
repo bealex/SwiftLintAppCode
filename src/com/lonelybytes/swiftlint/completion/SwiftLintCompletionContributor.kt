@@ -81,7 +81,7 @@ class SwiftLintCompletionContributor : CompletionContributor() {
                     val position = parameters.position
                     // swiftlint sees only comments that start with `//`, `///` will not do :(
                     // can't check statically, older CLion does not have this class.
-                    if (!position.text.startsWith("// ")) return
+                    if (!position.text.startsWith("$LINE_COMMENT_PREFIX ") && !position.parent.text.startsWith("$LINE_COMMENT_PREFIX ")) return
 //                    if (position.parent.elementType.javaClass.kotlin.simpleName != "SwiftLazyEolCommentElementType" ||
 //                        position.parent.firstChild.text != LINE_COMMENT_PREFIX ||
 //                        position.text != LINE_COMMENT_PREFIX) return
@@ -95,7 +95,7 @@ class SwiftLintCompletionContributor : CompletionContributor() {
                     val prefix = resultSet.prefixMatcher.prefix
 
                     val textBeforePrefix =
-                        if (position.text.startsWith("// ")) {
+                        if (position.text.startsWith("$LINE_COMMENT_PREFIX ")) {
                             position.text
                                 .drop(3)
                                 .replace("IntellijIdeaRulezzz", "")
