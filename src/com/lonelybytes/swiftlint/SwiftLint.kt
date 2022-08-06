@@ -40,7 +40,7 @@ class SwiftLint {
 
     @Throws(IOException::class, InterruptedException::class)
     private fun processAutocorrect(aToolPath: String, aFilePath: String, aRunDirectory: File) {
-        val params = mutableListOf(aToolPath, "autocorrect", "--no-cache", "--path", aFilePath)
+        val params = mutableListOf(aToolPath, "autocorrect", "--no-cache", aFilePath)
 
         log("Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
 
@@ -50,7 +50,7 @@ class SwiftLint {
 
     @Throws(IOException::class, InterruptedException::class)
     private fun processAsApp(toolPath: String, aAction: String, aFilePath: String, aRunDirectory: File): List<String> {
-        val params: MutableList<String> = mutableListOf(toolPath, aAction, "--no-cache", "--reporter", "csv", "--path", aFilePath)
+        val params: MutableList<String> = mutableListOf(toolPath, aAction, "--no-cache", "--reporter", "csv", aFilePath)
 
         log("Run: '" + params.joinToString(separator = " ") + "' in '" + aRunDirectory.path + "'")
 

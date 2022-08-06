@@ -4,7 +4,7 @@
     <id>com.appcodeplugins.swiftlint</id>
 
     <name>SwiftLint</name>
-    <version>1.13.7</version>
+    <version>1.13.8</version>
     <vendor email="alex@lonelybytes.com" url="https://github.com/bealex/SwiftLintAppCode">Alexander Babaev</vendor>
 
     <description><![CDATA[
@@ -18,6 +18,10 @@
 
     <change-notes>
         <![CDATA[
+        <p>1.13.8</p>
+        <ul>
+          <li>Removed a warning</li>
+        </ul>
         <p>1.13.7</p>
         <ul>
           <li>Documentation updated (thanks to https://github.com/mleonhard)</li>
